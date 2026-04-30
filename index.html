@@ -531,10 +531,18 @@ function renderClusterDetail(cl) {
 // ---- 4. Papers tab -------------------------------------------------------
 let papersTable = null;
 function renderPapersTable() {
+  // shuffle the initial row order so the page does not always open on the same
+  // year/journal corner; column-header clicks still sort normally.
+  const shuffled = state.papers.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {        // Fisher-Yates
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
   // use object-mode (data: [{}, ...] + columns referencing fields).
   // rowId stamps each <tr> with id="row_<paper_id>" — used for click-back from Topics tab.
   papersTable = $("#papers-table").DataTable({
-    data: state.papers,
+    data: shuffled,
     rowId: function (p) { return "row_" + p.id; },
     columns: [
       { data: "year",    title: "Year",    width: "60px" },
@@ -548,8 +556,8 @@ function renderPapersTable() {
       }
     ],
     pageLength: 25,
-    order: [[0, "desc"]],          // year descending — newest first
-    orderCellsTop: true,           // sort still triggers from the top header row
+    order: [],                     // no default sort — show the shuffled order
+    orderCellsTop: true,           // when users do click a header, sort triggers from the top row
     deferRender: false,
     initComplete: function () {
       const api = this.api();
@@ -763,12 +771,12 @@ function renderBridge() {
                   : "bridge-tier-as";
   const rankSentence = (() => {
     if (br.tier === "underdeveloped") {
-      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most underdeveloped to most overdeveloped. This is the <span class="${tierClass}">${ordinal(br.rank_weak_to_strong)}</span> most underdeveloped pair.`;
+      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most underdeveloped to most overdeveloped.<br />This is the <span class="${tierClass}">${ordinal(br.rank_weak_to_strong)}</span> most underdeveloped pair.`;
     }
     if (br.tier === "overdeveloped") {
-      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total}, or equivalently the <span class="${tierClass}">${ordinal(br.rank_strong_to_weak)}</span> most overdeveloped pair.`;
+      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most underdeveloped to most overdeveloped.<br />Equivalently, this is the <span class="${tierClass}">${ordinal(br.rank_strong_to_weak)}</span> most overdeveloped pair.`;
     }
-    return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total}. <span class="${tierClass}">As expected</span> under the simulated null (|z| &lt; 1.96).`;
+    return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most underdeveloped to most overdeveloped.<br /><span class="${tierClass}">As expected</span> under the simulated null (|z| &lt; 1.96).`;
   })();
 
   out.style.display = "block";
