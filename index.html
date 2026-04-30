@@ -90,16 +90,64 @@
   .tc-list .topic-row.selected { background: #eaf1f8; border-left-color: var(--accent); }
   .tc-list .topic-row .prop { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
 
-  .tc-detail { border: 1px solid var(--line); border-radius: 6px; padding: 18px; min-height: 78vh; }
-  .word-list { font-size: 13px; line-height: 1.7; }
-  .word-list .word { display: inline-block; background: var(--soft); padding: 1px 7px; margin: 1px; border-radius: 3px; }
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 14px; }
-  .chart-box { border: 1px solid var(--line); border-radius: 4px; padding: 8px; }
+  .tc-detail { border: 1px solid var(--line); border-radius: 6px; padding: 22px 24px; min-height: 78vh; }
+
+  /* hierarchy for the topic / cluster detail panel */
+  .detail-header { margin-bottom: 18px; }
+  .detail-header .kicker {
+    display: inline-block; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .1em; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .detail-title {
+    font-size: 26px; font-weight: 700; line-height: 1.15;
+    margin: 0 0 10px 0; color: var(--ink); letter-spacing: -0.01em;
+  }
+  .cluster-pill {
+    display: inline-block; padding: 3px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; color: #000;
+  }
+  .swatch-lg {
+    display: inline-block; width: 18px; height: 18px; border-radius: 4px;
+    vertical-align: -3px; margin-right: 8px;
+  }
+  .detail-meta-strip {
+    display: flex; gap: 40px; padding: 14px 0;
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .detail-meta-strip .stat { display: flex; flex-direction: column; gap: 3px; }
+  .detail-meta-strip .label {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em; font-weight: 600;
+  }
+  .detail-meta-strip .value {
+    font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .detail-section { margin-bottom: 26px; }
+  .detail-section + .detail-section {
+    padding-top: 22px; border-top: 1px solid var(--line);
+  }
+  .detail-section > h3:first-child { margin-top: 0; }
+  .detail-section h3 {
+    font-size: 12px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em; font-weight: 700;
+    margin: 18px 0 10px 0;
+  }
+
+  .word-list { font-size: 13.5px; line-height: 1.85; }
+  .word-list .word {
+    display: inline-block; background: var(--soft); padding: 2px 8px; margin: 2px;
+    border-radius: 4px; color: var(--ink);
+  }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 6px; }
+  .chart-box { border: 1px solid var(--line); border-radius: 5px; padding: 10px 12px; background: #fff; }
   .chart-box h3 { margin-bottom: 6px; }
-  .top-papers { margin-top: 18px; }
   .top-papers ol { padding-left: 22px; margin: 6px 0; }
-  .top-papers li { margin: 4px 0; }
-  .top-papers .meta-line { color: var(--muted); font-size: 12px; }
+  .top-papers li { margin: 6px 0; }
+  .top-papers a { font-weight: 500; }
+  .top-papers .meta-line { color: var(--muted); font-size: 12px; margin-top: 1px; }
 
   /* papers tab */
   .papers-grid { display: grid; grid-template-columns: 1fr 360px; gap: 22px; }
@@ -365,7 +413,7 @@ function renderTcList() {
     header.className = "cluster-header";
     header.innerHTML = `
       <span><span class="swatch" style="background:${clusterColor[cl.name]}"></span>${cl.name}</span>
-      <span class="muted" style="font-size:11px">${(cl.prop * 100).toFixed(1)}%</span>`;
+      <span class="muted" style="font-size:11px">${pct(cl.prop)}</span>`;
     const body = document.createElement("div");
     body.className = "cluster-body";
 
@@ -374,7 +422,7 @@ function renderTcList() {
       const row = document.createElement("div");
       row.className = "topic-row";
       row.dataset.topic = tno;
-      row.innerHTML = `<span>${tno}. ${t.label}</span><span class="prop">${(t.prop * 100).toFixed(1)}%</span>`;
+      row.innerHTML = `<span>${tno}. ${t.label}</span><span class="prop">${pct(t.prop)}</span>`;
       row.addEventListener("click", e => { e.stopPropagation(); selectTopic(tno); });
       body.appendChild(row);
     });
@@ -414,33 +462,48 @@ function renderTopicDetail(t) {
   const papers = state.topicPapers[t.topic_no] || [];
   const paperList = papers.slice(0, 15).map(p =>
     `<li><a href="#" data-paper="${p.paper_id}">${escape(p.title)}</a>
-       <div class="meta-line">${p.year} · ${p.journal}${p.url ? ` · <a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : ""} · θ = ${(p.prop).toFixed(3)}</div></li>`
+       <div class="meta-line">${p.year} · ${p.journal}${p.url ? ` · <a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : ""} · θ = ${pct(p.prop)}</div></li>`
   ).join("");
 
   el.innerHTML = `
-    <h3>Topic</h3>
-    <h2>${t.topic_no}. ${t.label}
-      <span class="pill" style="background:${clusterColorHex[t.cluster]}; color:#000">${t.cluster}</span>
-    </h2>
-    <p class="muted">Overall prevalence: ${(t.prop * 100).toFixed(2)}% &middot; Within-cluster rank: ${t.rank_in_cluster}</p>
+    <div class="detail-header">
+      <span class="kicker">Topic ${t.topic_no}</span>
+      <h2 class="detail-title">${t.label}</h2>
+      <span class="cluster-pill" style="background:${clusterColorHex[t.cluster]}">${t.cluster}</span>
+    </div>
 
-    <h3 style="margin-top:14px">Top words (highest probability)</h3>
-    <div class="word-list">${probWords}</div>
-    <h3 style="margin-top:14px">Top words (FREX)</h3>
-    <div class="word-list">${frexWords}</div>
-
-    <div class="two-col">
-      <div class="chart-box">
-        <h3>Year-over-year prevalence</h3>
-        <div id="chart-topic-long" style="height:240px"></div>
+    <div class="detail-meta-strip">
+      <div class="stat">
+        <span class="label">Overall prevalence</span>
+        <span class="value">${pct(t.prop)}</span>
       </div>
-      <div class="chart-box">
-        <h3>Mean prevalence by journal</h3>
-        <div id="chart-topic-journal" style="height:240px"></div>
+      <div class="stat">
+        <span class="label">Rank in cluster</span>
+        <span class="value">${t.rank_in_cluster}</span>
       </div>
     </div>
 
-    <div class="top-papers">
+    <div class="detail-section">
+      <h3>Top words — highest probability</h3>
+      <div class="word-list">${probWords}</div>
+      <h3>Top words — FREX</h3>
+      <div class="word-list">${frexWords}</div>
+    </div>
+
+    <div class="detail-section">
+      <div class="two-col">
+        <div class="chart-box">
+          <h3>Year-over-year prevalence</h3>
+          <div id="chart-topic-long" style="height:240px"></div>
+        </div>
+        <div class="chart-box">
+          <h3>Mean prevalence by journal</h3>
+          <div id="chart-topic-journal" style="height:240px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-section top-papers">
       <h3>Top representative papers</h3>
       <ol>${paperList}</ol>
     </div>
@@ -452,16 +515,18 @@ function renderTopicDetail(t) {
     y: t.longitudinal.map(d => d.prop),
     mode: "lines+markers",
     line: { color: clusterColorHex[t.cluster], width: 2 },
-    marker: { color: clusterColorHex[t.cluster], size: 6 }
-  }], plotlyLayout({ yTitle: "Mean prop." }), plotlyConfig());
+    marker: { color: clusterColorHex[t.cluster], size: 6 },
+    hovertemplate: "%{x}: %{y:.2%}<extra></extra>"
+  }], plotlyLayout({ yPercent: true }), plotlyConfig());
 
   // journal bar
   Plotly.newPlot("chart-topic-journal", [{
     x: t.journal_means.map(d => d.journal),
     y: t.journal_means.map(d => d.mean_prop),
     type: "bar",
-    marker: { color: clusterColorHex[t.cluster] }
-  }], plotlyLayout({ yTitle: "Mean prop." }), plotlyConfig());
+    marker: { color: clusterColorHex[t.cluster] },
+    hovertemplate: "%{x}: %{y:.2%}<extra></extra>"
+  }], plotlyLayout({ yPercent: true }), plotlyConfig());
 
   // wire paper-link clicks
   el.querySelectorAll("a[data-paper]").forEach(a => {
@@ -480,28 +545,41 @@ function renderClusterDetail(cl) {
   const memberLis = cl.topic_nos.map(tno => {
     const t = state.topicById.get(tno);
     return `<li><a href="#" data-topic="${tno}">${tno}. ${t.label}</a>
-              <span class="muted">${(t.prop * 100).toFixed(1)}%</span></li>`;
+              <span class="muted">${pct(t.prop)}</span></li>`;
   }).join("");
   el.innerHTML = `
-    <h3>Cluster</h3>
-    <h2>
-      <span class="swatch" style="background:${clusterColor[cl.name]}; display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:middle"></span>
-      ${cl.name}
-    </h2>
-    <p class="muted">Overall prevalence: ${(cl.prop * 100).toFixed(2)}% &middot; ${cl.topic_nos.length} topics</p>
+    <div class="detail-header">
+      <span class="kicker">Cluster</span>
+      <h2 class="detail-title">
+        <span class="swatch-lg" style="background:${clusterColor[cl.name]}"></span>${cl.name}
+      </h2>
+    </div>
 
-    <div class="two-col">
-      <div class="chart-box">
-        <h3>Year-over-year prevalence</h3>
-        <div id="chart-cluster-long" style="height:240px"></div>
+    <div class="detail-meta-strip">
+      <div class="stat">
+        <span class="label">Overall prevalence</span>
+        <span class="value">${pct(cl.prop)}</span>
       </div>
-      <div class="chart-box">
-        <h3>Mean prevalence by journal</h3>
-        <div id="chart-cluster-journal" style="height:240px"></div>
+      <div class="stat">
+        <span class="label">Topics in cluster</span>
+        <span class="value">${cl.topic_nos.length}</span>
       </div>
     </div>
 
-    <div class="top-papers">
+    <div class="detail-section">
+      <div class="two-col">
+        <div class="chart-box">
+          <h3>Year-over-year prevalence</h3>
+          <div id="chart-cluster-long" style="height:240px"></div>
+        </div>
+        <div class="chart-box">
+          <h3>Mean prevalence by journal</h3>
+          <div id="chart-cluster-journal" style="height:240px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-section top-papers">
       <h3>Member topics (ranked within cluster)</h3>
       <ol>${memberLis}</ol>
     </div>
@@ -511,14 +589,16 @@ function renderClusterDetail(cl) {
     y: cl.longitudinal.map(d => d.prop),
     mode: "lines+markers",
     line: { color: clusterColorHex[cl.name], width: 2 },
-    marker: { color: clusterColorHex[cl.name], size: 6 }
-  }], plotlyLayout({ yTitle: "Mean prop." }), plotlyConfig());
+    marker: { color: clusterColorHex[cl.name], size: 6 },
+    hovertemplate: "%{x}: %{y:.2%}<extra></extra>"
+  }], plotlyLayout({ yPercent: true }), plotlyConfig());
   Plotly.newPlot("chart-cluster-journal", [{
     x: cl.journal_means.map(d => d.journal),
     y: cl.journal_means.map(d => d.mean_prop),
     type: "bar",
-    marker: { color: clusterColorHex[cl.name] }
-  }], plotlyLayout({ yTitle: "Mean prop." }), plotlyConfig());
+    marker: { color: clusterColorHex[cl.name] },
+    hovertemplate: "%{x}: %{y:.2%}<extra></extra>"
+  }], plotlyLayout({ yPercent: true }), plotlyConfig());
 
   el.querySelectorAll("a[data-topic]").forEach(a => {
     a.addEventListener("click", e => {
@@ -559,6 +639,8 @@ function renderPapersTable() {
     order: [],                     // no default sort — show the shuffled order
     orderCellsTop: true,           // when users do click a header, sort triggers from the top row
     deferRender: false,
+    dom: "lrtip",                  // hide the global "Search:" box; column filters live in the header
+
     initComplete: function () {
       const api = this.api();
 
@@ -626,7 +708,7 @@ function renderPaperDetail(p) {
     return `
       <li>
         <a href="#" data-topic="${tt.topic_no}">${tt.topic_no}. ${t.label}</a>
-        <span class="muted" style="font-variant-numeric: tabular-nums">θ = ${tt.prop.toFixed(3)}</span>
+        <span class="muted" style="font-variant-numeric: tabular-nums">θ = ${pct(tt.prop)}</span>
         <div style="background:${clusterColorHex[t.cluster]}; height:6px; border-radius:3px; width:${(tt.prop * 200).toFixed(0)}px; max-width:100%; margin-top:3px"></div>
       </li>`;
   }).join("");
@@ -686,7 +768,7 @@ function renderBridgePicker() {
     header.className = "cluster-header";
     header.innerHTML = `
       <span><span class="swatch" style="background:${clusterColor[cl.name]}"></span>${cl.name}</span>
-      <span class="muted" style="font-size:11px">${(cl.prop * 100).toFixed(1)}%</span>`;
+      <span class="muted" style="font-size:11px">${pct(cl.prop)}</span>`;
     const body = document.createElement("div");
     body.className = "cluster-body open"; // start expanded so the user sees topics immediately
     cl.topic_nos.forEach(tno => {
@@ -694,7 +776,7 @@ function renderBridgePicker() {
       const row = document.createElement("div");
       row.className = "topic-row";
       row.dataset.topic = tno;
-      row.innerHTML = `<span>${tno}. ${t.label}</span><span class="prop">${(t.prop * 100).toFixed(1)}%</span>`;
+      row.innerHTML = `<span>${tno}. ${t.label}</span><span class="prop">${pct(t.prop)}</span>`;
       row.addEventListener("dblclick", e => { e.stopPropagation(); pickBridgeTopic(tno); });
       body.appendChild(row);
     });
@@ -847,10 +929,13 @@ function renderBridge() {
 // ---- 6. helpers ----------------------------------------------------------
 function plotlyLayout(opts = {}) {
   return {
-    margin: { t: 6, r: 10, b: 36, l: 48 },
+    margin: { t: 6, r: 10, b: 36, l: 56 },
     xaxis: { gridcolor: "#eef0f2", zerolinecolor: "#e5e7eb", tickfont: { size: 11 } },
-    yaxis: { gridcolor: "#eef0f2", zerolinecolor: "#e5e7eb", tickfont: { size: 11 },
-             title: opts.yTitle ? { text: opts.yTitle, standoff: 8, font: { size: 11 } } : undefined },
+    yaxis: {
+      gridcolor: "#eef0f2", zerolinecolor: "#e5e7eb", tickfont: { size: 11 },
+      tickformat: opts.yPercent ? ".2%" : undefined,
+      title: opts.yTitle ? { text: opts.yTitle, standoff: 8, font: { size: 11 } } : undefined
+    },
     plot_bgcolor: "#fff",
     paper_bgcolor: "#fff",
     showlegend: false
@@ -862,6 +947,11 @@ function plotlyConfig() {
 function escape(s) {
   if (s == null) return "";
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+// proportions are stored as 0..1 in the JSON; everywhere we display, show "XX.XX%"
+function pct(x) {
+  if (x == null || isNaN(x)) return "";
+  return (x * 100).toFixed(2) + "%";
 }
 function ordinal(n) {
   const s = ["th", "st", "nd", "rd"], v = n % 100;
