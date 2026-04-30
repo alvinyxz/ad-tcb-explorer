@@ -701,7 +701,7 @@ function selectPaperById(id) {
 
 function renderPaperDetail(p) {
   const el = document.getElementById("paper-detail");
-  const doiLink = p.url ? `<a href="${p.url}" target="_blank" rel="noopener">${p.doi ?? "DOI"}</a>` : "";
+  const doiLink = p.url ? `<a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : "";
   const topicsHtml = (p.top_topics || []).map(tt => {
     const t = state.topicById.get(tt.topic_no);
     if (!t) return "";
