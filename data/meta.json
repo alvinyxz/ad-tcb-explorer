@@ -1,0 +1,11 @@
+{
+  "n_papers": 1674,
+  "n_topics": 72,
+  "n_clusters": 8,
+  "n_bridges": 2556,
+  "n_simulations": 500,
+  "year_min": 2014,
+  "year_max": 2024,
+  "journals": ["IJA", "JA", "JCIRA", "JIAD", "JAR"],
+  "generated": "2026-04-30"
+}

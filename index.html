@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TCB Explorer — A Decade of Advertising Scholarship</title>
+
+<!-- libraries from CDN; no build step -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css" />
+
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #1f2328;
+    --muted: #5a636c;
+    --line: #d8dde2;
+    --soft: #f5f7f9;
+    --accent: #1f4e79;
+
+    /* ColorBrewer Set2, mapped to your eight clusters */
+    --c-digital:        #66c2a5;
+    --c-message:        #fc8d62;
+    --c-responses:      #8da0cb;
+    --c-society:        #e78ac3;
+    --c-identity:       #a6d854;
+    --c-entertainment:  #ffd92f;
+    --c-marketing:      #e5c494;
+    --c-research:       #b3b3b3;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+               font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+               font-size: 14px; line-height: 1.45; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h1, h2, h3, h4 { margin: 0 0 .35em 0; font-weight: 600; line-height: 1.2; }
+  h1 { font-size: 18px; }
+  h2 { font-size: 15px; }
+  h3 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .muted { color: var(--muted); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #fff; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
+
+  /* layout */
+  header.site {
+    border-bottom: 1px solid var(--line);
+    padding: 14px 22px;
+    display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+  }
+  header.site .summary { color: var(--muted); font-size: 12px; }
+  nav.tabs {
+    display: flex; gap: 0; border-bottom: 1px solid var(--line); padding: 0 22px;
+  }
+  nav.tabs button {
+    background: none; border: 0; padding: 12px 18px; font: inherit; cursor: pointer;
+    color: var(--muted); border-bottom: 2px solid transparent;
+  }
+  nav.tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
+
+  main { padding: 18px 22px 60px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* topics-and-clusters tab */
+  .tc-grid {
+    display: grid; grid-template-columns: 320px 1fr; gap: 22px;
+    min-height: 70vh;
+  }
+  .tc-list {
+    border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+    max-height: 78vh; overflow-y: auto;
+  }
+  .tc-list .cluster-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; background: var(--soft); border-bottom: 1px solid var(--line);
+    cursor: pointer; user-select: none; font-weight: 600;
+  }
+  .tc-list .cluster-header:hover { background: #eef2f5; }
+  .tc-list .cluster-header .swatch {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px;
+  }
+  .tc-list .cluster-body { display: none; padding: 4px 0; }
+  .tc-list .cluster-body.open { display: block; }
+  .tc-list .topic-row {
+    padding: 5px 12px 5px 30px; cursor: pointer; display: flex; justify-content: space-between;
+    border-left: 3px solid transparent;
+  }
+  .tc-list .topic-row:hover { background: var(--soft); }
+  .tc-list .topic-row.selected { background: #eaf1f8; border-left-color: var(--accent); }
+  .tc-list .topic-row .prop { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+
+  .tc-detail { border: 1px solid var(--line); border-radius: 6px; padding: 18px; min-height: 78vh; }
+  .word-list { font-size: 13px; line-height: 1.7; }
+  .word-list .word { display: inline-block; background: var(--soft); padding: 1px 7px; margin: 1px; border-radius: 3px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 14px; }
+  .chart-box { border: 1px solid var(--line); border-radius: 4px; padding: 8px; }
+  .chart-box h3 { margin-bottom: 6px; }
+  .top-papers { margin-top: 18px; }
+  .top-papers ol { padding-left: 22px; margin: 6px 0; }
+  .top-papers li { margin: 4px 0; }
+  .top-papers .meta-line { color: var(--muted); font-size: 12px; }
+
+  /* papers tab */
+  .papers-grid { display: grid; grid-template-columns: 1fr 360px; gap: 22px; }
+  table.dataTable thead th { font-weight: 600; }
+  table.dataTable tbody tr { cursor: pointer; }
+  table.dataTable tbody tr.selected { background: #eaf1f8 !important; }
+  .paper-detail { border: 1px solid var(--line); border-radius: 6px; padding: 18px; align-self: start;
+                  position: sticky; top: 16px; max-height: 88vh; overflow-y: auto; }
+  .paper-detail .empty { color: var(--muted); }
+
+  /* bridges tab */
+  .bridge-box { border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
+  .bridge-slots {
+    display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px;
+    align-items: center; margin: 14px 0 18px;
+  }
+  .slot {
+    border: 1.5px solid var(--line); border-radius: 6px; padding: 10px 14px;
+    background: var(--soft); transition: all .15s ease;
+  }
+  .slot.active { border-color: var(--accent); background: #eaf1f8; }
+  .slot.filled { border-color: var(--ink); background: #fff; }
+  .slot .slot-label {
+    display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--muted); font-weight: 600;
+  }
+  .slot .slot-value { display: block; font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 2px; }
+  .slot .slot-value.empty { color: var(--muted); font-weight: 400; font-style: italic; }
+  .bridge-clear-btn {
+    background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px;
+    font: inherit; cursor: pointer; color: var(--muted);
+  }
+  .bridge-clear-btn:hover { color: var(--ink); border-color: var(--ink); }
+
+  .bridge-picker {
+    border: 1px solid var(--line); border-radius: 6px; max-height: 360px; overflow-y: auto;
+    margin-bottom: 18px; user-select: none;
+  }
+  .bridge-picker .cluster-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 12px; background: var(--soft); border-bottom: 1px solid var(--line);
+    cursor: pointer; font-weight: 600;
+  }
+  .bridge-picker .cluster-header .swatch {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px;
+  }
+  .bridge-picker .cluster-body { display: none; }
+  .bridge-picker .cluster-body.open { display: block; }
+  .bridge-picker .topic-row {
+    padding: 5px 12px 5px 30px; cursor: pointer; display: flex; justify-content: space-between;
+    border-left: 3px solid transparent;
+  }
+  .bridge-picker .topic-row:hover { background: var(--soft); }
+  .bridge-picker .topic-row.is-a { background: #eaf1f8; border-left-color: var(--accent); }
+  .bridge-picker .topic-row.is-b { background: #fdf3e8; border-left-color: #d97706; }
+  .bridge-picker .topic-row .prop { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+
+  .bridge-result {
+    border: 1px solid var(--line); border-radius: 6px; padding: 22px; max-width: 900px;
+  }
+
+  /* per-column filters in the papers DataTable */
+  table.dataTable thead tr.filters th { padding: 4px; background: var(--soft); }
+  table.dataTable thead tr.filters select,
+  table.dataTable thead tr.filters input {
+    width: 100%; padding: 3px 6px; border: 1px solid var(--line); border-radius: 3px;
+    font: inherit; font-size: 12px; background: #fff;
+  }
+  table.dataTable thead tr.filters th:last-child { background: var(--soft); }
+  .bridge-numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 14px; }
+  .bridge-numbers .stat { background: var(--soft); border-radius: 4px; padding: 12px; }
+  .bridge-numbers .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .bridge-numbers .stat .value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .bridge-rank { margin-top: 18px; padding: 12px; background: #fffbe8; border-left: 3px solid #f0c33c; border-radius: 4px; }
+  .bridge-tier-under { color: #b04a3b; font-weight: 600; }
+  .bridge-tier-over  { color: #2d7a4d; font-weight: 600; }
+  .bridge-tier-as    { color: var(--muted); font-weight: 600; }
+
+  footer { color: var(--muted); font-size: 12px; padding: 30px 22px; border-top: 1px solid var(--line); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <h1>TCB Explorer · Advertising Scholarship 2014–2024</h1>
+  <span class="summary" id="summary">loading…</span>
+</header>
+
+<nav class="tabs">
+  <button data-tab="tc"      class="active">Topics &amp; Clusters</button>
+  <button data-tab="papers">Papers</button>
+  <button data-tab="bridges">Bridges</button>
+  <button data-tab="about">About</button>
+</nav>
+
+<main>
+
+  <!-- TOPICS & CLUSTERS TAB -->
+  <section id="tab-tc" class="panel active">
+    <div class="tc-grid">
+      <aside class="tc-list" id="tc-list"></aside>
+      <article class="tc-detail" id="tc-detail">
+        <p class="muted">Pick a cluster header to see cluster-level views, or expand a cluster and pick a topic.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- PAPERS TAB -->
+  <section id="tab-papers" class="panel">
+    <div class="papers-grid">
+      <div>
+        <table id="papers-table" class="display compact" style="width:100%">
+          <thead>
+            <tr>
+              <th>Year</th><th>Journal</th><th>Title</th><th>Link</th>
+            </tr>
+            <tr class="filters">
+              <th></th><th></th><th></th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <aside class="paper-detail" id="paper-detail">
+        <p class="empty">Click a paper row to see its top topics.</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- BRIDGES TAB -->
+  <section id="tab-bridges" class="panel">
+    <div class="bridge-box">
+      <p class="muted" style="margin-top:0">
+        Double-click a topic to set <b>Topic A</b>, then double-click another to set <b>Topic B</b>.
+        The card below reports observed co-exposure, the 95% interval from 500 simulated worlds, the z-score, and the bridge's rank among all 2,556.
+      </p>
+      <div class="bridge-slots">
+        <div class="slot active" id="slot-a">
+          <span class="slot-label">Topic A</span>
+          <span class="slot-value" id="slot-a-value">— double-click to set —</span>
+        </div>
+        <div class="slot" id="slot-b">
+          <span class="slot-label">Topic B</span>
+          <span class="slot-value" id="slot-b-value">— double-click to set —</span>
+        </div>
+        <button class="bridge-clear-btn" id="bridge-clear">Clear</button>
+      </div>
+      <div class="bridge-picker" id="bridge-picker"></div>
+      <div id="bridge-result" class="bridge-result" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ABOUT TAB -->
+  <section id="tab-about" class="panel">
+    <h2>About this site</h2>
+    <p>This is the public companion site to the paper that introduces the topic-cluster-bridge (TCB)
+       methodological framework for reviewing a decade of advertising scholarship.</p>
+    <p id="about-numbers" class="muted"></p>
+    <h3>How to read each tab</h3>
+    <p><b>Topics &amp; Clusters.</b> The 72 topics, grouped into 8 thematic clusters. Each topic shows
+       its top Prob and FREX words, its overall prevalence, how it has trended across years, how strongly
+       each journal has emphasized it, and its most representative papers.</p>
+    <p><b>Papers.</b> All 1,674 peer-reviewed articles. Filter by year or journal,
+       search by title, then click any row to see that paper's top topics.</p>
+    <p><b>Bridges.</b> Each of the 2,556 unique topic pairs. Pick two topics; we report the observed
+       co-exposure (sum of the products of topic proportions across articles), the 95% interval from
+       500 simulated worlds (the same procedure as in the paper), the z-score, and where the pair
+       ranks from most underdeveloped to most overdeveloped.</p>
+  </section>
+
+</main>
+
+<footer>
+  This explorer accompanies a manuscript currently under review at the <i>Journal of Advertising</i>.<br />
+  If you draw on the paper or this site in your own work, please cite: Author(s). (under review). <i>Title withheld for anonymous review</i>. <i>Journal of Advertising</i>. Full citation will be provided upon acceptance.
+</footer>
+
+<!-- libraries -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
+
+<script>
+// ============================================================================
+// TCB Explorer — front-end logic
+// ============================================================================
+
+// cluster-color mapping (must match CSS variable names)
+const clusterColor = {
+  "Digital Advertising":    "var(--c-digital)",
+  "Message":                "var(--c-message)",
+  "Advertising Responses":  "var(--c-responses)",
+  "Advertising & Society":  "var(--c-society)",
+  "Identity":               "var(--c-identity)",
+  "Entertainment":          "var(--c-entertainment)",
+  "Marketing Management":   "var(--c-marketing)",
+  "Research":               "var(--c-research)"
+};
+// hex equivalents for use inside Plotly (it can't read CSS vars)
+const clusterColorHex = {
+  "Digital Advertising":    "#66c2a5",
+  "Message":                "#fc8d62",
+  "Advertising Responses":  "#8da0cb",
+  "Advertising & Society":  "#e78ac3",
+  "Identity":               "#a6d854",
+  "Entertainment":          "#ffd92f",
+  "Marketing Management":   "#e5c494",
+  "Research":               "#b3b3b3"
+};
+
+// global state and data
+const state = {
+  meta: null,
+  topics: [],
+  clusters: [],
+  papers: [],
+  topicPapers: {},
+  bridges: [],
+  topicById: new Map(),
+  paperById: new Map(),
+  selectedTopic: null,
+  selectedCluster: null,
+  selectedPaper: null
+};
+
+// ---- 1. data load --------------------------------------------------------
+async function loadAll() {
+  const [meta, topics, clusters, papers, topicPapers, bridges] = await Promise.all([
+    fetch("data/meta.json").then(r => r.json()),
+    fetch("data/topics.json").then(r => r.json()),
+    fetch("data/clusters.json").then(r => r.json()),
+    fetch("data/papers.json").then(r => r.json()),
+    fetch("data/topic_papers.json").then(r => r.json()),
+    fetch("data/bridges.json").then(r => r.json())
+  ]);
+  state.meta = meta;
+  state.topics = topics;
+  state.clusters = clusters;
+  state.papers = papers;
+  state.topicPapers = topicPapers;
+  state.bridges = bridges;
+  state.topicById = new Map(topics.map(t => [t.topic_no, t]));
+  state.paperById = new Map(papers.map(p => [p.id, p]));
+}
+
+// ---- 2. tab nav ----------------------------------------------------------
+function setupTabs() {
+  document.querySelectorAll("nav.tabs button").forEach(btn => {
+    btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+  });
+}
+function activateTab(tab) {
+  document.querySelectorAll("nav.tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll("main .panel").forEach(p => p.classList.toggle("active", p.id === "tab-" + tab));
+}
+
+// ---- 3. Topics & Clusters tab -------------------------------------------
+function renderTcList() {
+  const list = document.getElementById("tc-list");
+  list.innerHTML = "";
+  state.clusters.forEach(cl => {
+    const header = document.createElement("div");
+    header.className = "cluster-header";
+    header.innerHTML = `
+      <span><span class="swatch" style="background:${clusterColor[cl.name]}"></span>${cl.name}</span>
+      <span class="muted" style="font-size:11px">${(cl.prop * 100).toFixed(1)}%</span>`;
+    const body = document.createElement("div");
+    body.className = "cluster-body";
+
+    cl.topic_nos.forEach(tno => {
+      const t = state.topicById.get(tno);
+      const row = document.createElement("div");
+      row.className = "topic-row";
+      row.dataset.topic = tno;
+      row.innerHTML = `<span>${tno}. ${t.label}</span><span class="prop">${(t.prop * 100).toFixed(1)}%</span>`;
+      row.addEventListener("click", e => { e.stopPropagation(); selectTopic(tno); });
+      body.appendChild(row);
+    });
+
+    header.addEventListener("click", () => {
+      // toggle cluster body open/closed AND show cluster-level detail
+      body.classList.toggle("open");
+      selectCluster(cl.name);
+    });
+
+    list.appendChild(header);
+    list.appendChild(body);
+  });
+}
+
+function selectTopic(tno) {
+  state.selectedTopic = tno;
+  state.selectedCluster = null;
+  document.querySelectorAll(".topic-row").forEach(r =>
+    r.classList.toggle("selected", parseInt(r.dataset.topic) === tno)
+  );
+  renderTopicDetail(state.topicById.get(tno));
+}
+
+function selectCluster(name) {
+  state.selectedCluster = name;
+  state.selectedTopic = null;
+  document.querySelectorAll(".topic-row").forEach(r => r.classList.remove("selected"));
+  renderClusterDetail(state.clusters.find(c => c.name === name));
+}
+
+function renderTopicDetail(t) {
+  const el = document.getElementById("tc-detail");
+  const probWords = (t.prob_words || []).map(w => `<span class="word">${w}</span>`).join(" ");
+  const frexWords = (t.frex_words || []).map(w => `<span class="word">${w}</span>`).join(" ");
+
+  const papers = state.topicPapers[t.topic_no] || [];
+  const paperList = papers.slice(0, 15).map(p =>
+    `<li><a href="#" data-paper="${p.paper_id}">${escape(p.title)}</a>
+       <div class="meta-line">${p.year} · ${p.journal}${p.url ? ` · <a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : ""} · θ = ${(p.prop).toFixed(3)}</div></li>`
+  ).join("");
+
+  el.innerHTML = `
+    <h3>Topic</h3>
+    <h2>${t.topic_no}. ${t.label}
+      <span class="pill" style="background:${clusterColorHex[t.cluster]}; color:#000">${t.cluster}</span>
+    </h2>
+    <p class="muted">Overall prevalence: ${(t.prop * 100).toFixed(2)}% &middot; Within-cluster rank: ${t.rank_in_cluster}</p>
+
+    <h3 style="margin-top:14px">Top words (highest probability)</h3>
+    <div class="word-list">${probWords}</div>
+    <h3 style="margin-top:14px">Top words (FREX)</h3>
+    <div class="word-list">${frexWords}</div>
+
+    <div class="two-col">
+      <div class="chart-box">
+        <h3>Year-over-year prevalence</h3>
+        <div id="chart-topic-long" style="height:240px"></div>
+      </div>
+      <div class="chart-box">
+        <h3>Mean prevalence by journal</h3>
+        <div id="chart-topic-journal" style="height:240px"></div>
+      </div>
+    </div>
+
+    <div class="top-papers">
+      <h3>Top representative papers</h3>
+      <ol>${paperList}</ol>
+    </div>
+  `;
+
+  // longitudinal line
+  Plotly.newPlot("chart-topic-long", [{
+    x: t.longitudinal.map(d => d.year),
+    y: t.longitudinal.map(d => d.prop),
+    mode: "lines+markers",
+    line: { color: clusterColorHex[t.cluster], width: 2 },
+    marker: { color: clusterColorHex[t.cluster], size: 6 }
+  }], plotlyLayout({ yTitle: "Mean prop." }), plotlyConfig());
+
+  // journal bar
+  Plotly.newPlot("chart-topic-journal", [{
+    x: t.journal_means.map(d => d.journal),
+    y: t.journal_means.map(d => d.mean_prop),
+    type: "bar",
+    marker: { color: clusterColorHex[t.cluster] }
+  }], plotlyLayout({ yTitle: "Mean prop." }), plotlyConfig());
+
+  // wire paper-link clicks
+  el.querySelectorAll("a[data-paper]").forEach(a => {
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      const id = parseInt(a.dataset.paper);
+      activateTab("papers");
+      // small delay so the tab DOM is visible before highlighting
+      setTimeout(() => selectPaperById(id), 60);
+    });
+  });
+}
+
+function renderClusterDetail(cl) {
+  const el = document.getElementById("tc-detail");
+  const memberLis = cl.topic_nos.map(tno => {
+    const t = state.topicById.get(tno);
+    return `<li><a href="#" data-topic="${tno}">${tno}. ${t.label}</a>
+              <span class="muted">${(t.prop * 100).toFixed(1)}%</span></li>`;
+  }).join("");
+  el.innerHTML = `
+    <h3>Cluster</h3>
+    <h2>
+      <span class="swatch" style="background:${clusterColor[cl.name]}; display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:middle"></span>
+      ${cl.name}
+    </h2>
+    <p class="muted">Overall prevalence: ${(cl.prop * 100).toFixed(2)}% &middot; ${cl.topic_nos.length} topics</p>
+
+    <div class="two-col">
+      <div class="chart-box">
+        <h3>Year-over-year prevalence</h3>
+        <div id="chart-cluster-long" style="height:240px"></div>
+      </div>
+      <div class="chart-box">
+        <h3>Mean prevalence by journal</h3>
+        <div id="chart-cluster-journal" style="height:240px"></div>
+      </div>
+    </div>
+
+    <div class="top-papers">
+      <h3>Member topics (ranked within cluster)</h3>
+      <ol>${memberLis}</ol>
+    </div>
+  `;
+  Plotly.newPlot("chart-cluster-long", [{
+    x: cl.longitudinal.map(d => d.year),
+    y: cl.longitudinal.map(d => d.prop),
+    mode: "lines+markers",
+    line: { color: clusterColorHex[cl.name], width: 2 },
+    marker: { color: clusterColorHex[cl.name], size: 6 }
+  }], plotlyLayout({ yTitle: "Mean prop." }), plotlyConfig());
+  Plotly.newPlot("chart-cluster-journal", [{
+    x: cl.journal_means.map(d => d.journal),
+    y: cl.journal_means.map(d => d.mean_prop),
+    type: "bar",
+    marker: { color: clusterColorHex[cl.name] }
+  }], plotlyLayout({ yTitle: "Mean prop." }), plotlyConfig());
+
+  el.querySelectorAll("a[data-topic]").forEach(a => {
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      selectTopic(parseInt(a.dataset.topic));
+    });
+  });
+}
+
+// ---- 4. Papers tab -------------------------------------------------------
+let papersTable = null;
+function renderPapersTable() {
+  // use object-mode (data: [{}, ...] + columns referencing fields).
+  // rowId stamps each <tr> with id="row_<paper_id>" — used for click-back from Topics tab.
+  papersTable = $("#papers-table").DataTable({
+    data: state.papers,
+    rowId: function (p) { return "row_" + p.id; },
+    columns: [
+      { data: "year",    title: "Year",    width: "60px" },
+      { data: "journal", title: "Journal", width: "80px" },
+      { data: "title",   title: "Title" },
+      {
+        data: "url", title: "Link", width: "70px", orderable: false, searchable: false,
+        render: function (url) {
+          return url ? '<a href="' + url + '" target="_blank" rel="noopener">link</a>' : '';
+        }
+      }
+    ],
+    pageLength: 25,
+    order: [[0, "desc"]],          // year descending — newest first
+    orderCellsTop: true,           // sort still triggers from the top header row
+    deferRender: false,
+    initComplete: function () {
+      const api = this.api();
+
+      // year column (0): dropdown of unique years
+      const yearCell = $("table#papers-table thead tr.filters th").eq(0).empty();
+      const years = api.column(0).data().toArray()
+        .filter(v => v !== null && v !== "")
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .sort((a, b) => b - a);
+      const yearSel = $('<select><option value="">All</option></select>').appendTo(yearCell);
+      years.forEach(y => yearSel.append(`<option value="${y}">${y}</option>`));
+      yearSel.on("change", function () {
+        const v = this.value;
+        api.column(0).search(v ? "^" + v + "$" : "", true, false).draw();
+      });
+
+      // journal column (1): dropdown of unique journals
+      const jCell = $("table#papers-table thead tr.filters th").eq(1).empty();
+      const journals = api.column(1).data().toArray()
+        .filter(v => v !== null && v !== "")
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .sort();
+      const jSel = $('<select><option value="">All</option></select>').appendTo(jCell);
+      journals.forEach(j => jSel.append(`<option value="${j}">${j}</option>`));
+      jSel.on("change", function () {
+        const v = this.value;
+        api.column(1).search(v ? "^" + v + "$" : "", true, false).draw();
+      });
+
+      // title column (2): free-text search
+      const tCell = $("table#papers-table thead tr.filters th").eq(2).empty();
+      const tInput = $('<input type="text" placeholder="search title…" />').appendTo(tCell);
+      tInput.on("keyup change", function () {
+        api.column(2).search(this.value).draw();
+      });
+    }
+  });
+
+  // row click → paper detail (use rowId, not brittle DOM scanning)
+  $("#papers-table tbody").on("click", "tr", function () {
+    const id = parseInt(String(this.id).replace("row_", ""));
+    if (!isNaN(id)) selectPaperById(id);
+  });
+}
+
+function selectPaperById(id) {
+  state.selectedPaper = id;
+  const paper = state.paperById.get(id);
+  if (!paper) return;
+  $("#papers-table tbody tr").removeClass("selected");
+  const tr = document.getElementById("row_" + id);
+  if (tr) {
+    tr.classList.add("selected");
+    tr.scrollIntoView({ block: "nearest" });
+  }
+  renderPaperDetail(paper);
+}
+
+function renderPaperDetail(p) {
+  const el = document.getElementById("paper-detail");
+  const doiLink = p.url ? `<a href="${p.url}" target="_blank" rel="noopener">${p.doi ?? "DOI"}</a>` : "";
+  const topicsHtml = (p.top_topics || []).map(tt => {
+    const t = state.topicById.get(tt.topic_no);
+    if (!t) return "";
+    return `
+      <li>
+        <a href="#" data-topic="${tt.topic_no}">${tt.topic_no}. ${t.label}</a>
+        <span class="muted" style="font-variant-numeric: tabular-nums">θ = ${tt.prop.toFixed(3)}</span>
+        <div style="background:${clusterColorHex[t.cluster]}; height:6px; border-radius:3px; width:${(tt.prop * 200).toFixed(0)}px; max-width:100%; margin-top:3px"></div>
+      </li>`;
+  }).join("");
+  el.innerHTML = `
+    <h3>Paper</h3>
+    <h2 style="font-size:14px">${escape(p.title)}</h2>
+    <p class="muted" style="margin:6px 0 0 0">${p.year ?? ""} · ${p.journal ?? ""} · ${doiLink}</p>
+    <h3 style="margin-top:16px">Top topics</h3>
+    <ol style="padding-left:18px">${topicsHtml}</ol>
+  `;
+  el.querySelectorAll("a[data-topic]").forEach(a => {
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      activateTab("tc");
+      const tno = parseInt(a.dataset.topic);
+      // expand the parent cluster header so the row is visible
+      const t = state.topicById.get(tno);
+      const headers = document.querySelectorAll(".tc-list .cluster-header");
+      headers.forEach(h => {
+        if (h.textContent.includes(t.cluster)) {
+          h.nextElementSibling?.classList.add("open");
+        }
+      });
+      setTimeout(() => selectTopic(tno), 30);
+    });
+  });
+}
+
+// ---- 5. Bridges tab ------------------------------------------------------
+let bridgeKey = null; // "a:b" lookup; ensures we find the bridge in either order
+function buildBridgeIndex() {
+  bridgeKey = new Map();
+  state.bridges.forEach(b => {
+    bridgeKey.set(`${b.topic_a_no}:${b.topic_b_no}`, b);
+    bridgeKey.set(`${b.topic_b_no}:${b.topic_a_no}`, b);
+  });
+}
+
+function setupBridgeTab() {
+  buildBridgeIndex();
+  state.bridgeA = null;
+  state.bridgeB = null;
+  state.bridgeNext = "A";
+  renderBridgePicker();
+  updateBridgeSlots();
+  document.getElementById("bridge-clear").addEventListener("click", clearBridgeSelection);
+  // also let users click slot boxes to choose which slot is being filled next
+  document.getElementById("slot-a").addEventListener("click", () => { state.bridgeNext = "A"; updateBridgeSlots(); });
+  document.getElementById("slot-b").addEventListener("click", () => { state.bridgeNext = "B"; updateBridgeSlots(); });
+}
+
+function renderBridgePicker() {
+  const list = document.getElementById("bridge-picker");
+  list.innerHTML = "";
+  state.clusters.forEach(cl => {
+    const header = document.createElement("div");
+    header.className = "cluster-header";
+    header.innerHTML = `
+      <span><span class="swatch" style="background:${clusterColor[cl.name]}"></span>${cl.name}</span>
+      <span class="muted" style="font-size:11px">${(cl.prop * 100).toFixed(1)}%</span>`;
+    const body = document.createElement("div");
+    body.className = "cluster-body open"; // start expanded so the user sees topics immediately
+    cl.topic_nos.forEach(tno => {
+      const t = state.topicById.get(tno);
+      const row = document.createElement("div");
+      row.className = "topic-row";
+      row.dataset.topic = tno;
+      row.innerHTML = `<span>${tno}. ${t.label}</span><span class="prop">${(t.prop * 100).toFixed(1)}%</span>`;
+      row.addEventListener("dblclick", e => { e.stopPropagation(); pickBridgeTopic(tno); });
+      body.appendChild(row);
+    });
+    header.addEventListener("click", () => body.classList.toggle("open"));
+    list.appendChild(header);
+    list.appendChild(body);
+  });
+}
+
+function pickBridgeTopic(tno) {
+  if (state.bridgeNext === "A") {
+    state.bridgeA = tno;
+    state.bridgeNext = "B";
+  } else {
+    state.bridgeB = tno;
+    state.bridgeNext = "A";
+  }
+  updateBridgeSlots();
+  renderBridge();
+}
+
+function clearBridgeSelection() {
+  state.bridgeA = null;
+  state.bridgeB = null;
+  state.bridgeNext = "A";
+  updateBridgeSlots();
+  document.getElementById("bridge-result").style.display = "none";
+}
+
+function updateBridgeSlots() {
+  const slotA = document.getElementById("slot-a");
+  const slotB = document.getElementById("slot-b");
+  const valA  = document.getElementById("slot-a-value");
+  const valB  = document.getElementById("slot-b-value");
+  const tA    = state.bridgeA ? state.topicById.get(state.bridgeA) : null;
+  const tB    = state.bridgeB ? state.topicById.get(state.bridgeB) : null;
+
+  valA.textContent = tA ? `${tA.topic_no}. ${tA.label}` : "— double-click to set —";
+  valA.classList.toggle("empty", !tA);
+  valB.textContent = tB ? `${tB.topic_no}. ${tB.label}` : "— double-click to set —";
+  valB.classList.toggle("empty", !tB);
+
+  slotA.classList.toggle("filled", !!tA);
+  slotB.classList.toggle("filled", !!tB);
+  slotA.classList.toggle("active", state.bridgeNext === "A");
+  slotB.classList.toggle("active", state.bridgeNext === "B");
+
+  // highlight the chosen rows in the picker list
+  document.querySelectorAll("#bridge-picker .topic-row").forEach(r => {
+    const tno = parseInt(r.dataset.topic);
+    r.classList.toggle("is-a", tno === state.bridgeA);
+    r.classList.toggle("is-b", tno === state.bridgeB);
+  });
+}
+
+function renderBridge() {
+  const a = state.bridgeA;
+  const b = state.bridgeB;
+  const out = document.getElementById("bridge-result");
+  if (!a || !b) { out.style.display = "none"; return; }
+  if (a === b) {
+    out.style.display = "block";
+    out.innerHTML = `<p class="muted">Pick two different topics.</p>`;
+    return;
+  }
+  const br = bridgeKey.get(`${a}:${b}`);
+  if (!br) {
+    out.style.display = "block";
+    out.innerHTML = `<p class="muted">No bridge data found for that pair.</p>`;
+    return;
+  }
+  const tierClass = br.tier === "underdeveloped" ? "bridge-tier-under"
+                  : br.tier === "overdeveloped"  ? "bridge-tier-over"
+                  : "bridge-tier-as";
+  const rankSentence = (() => {
+    if (br.tier === "underdeveloped") {
+      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most underdeveloped to most overdeveloped. This is the <span class="${tierClass}">${ordinal(br.rank_weak_to_strong)}</span> most underdeveloped pair.`;
+    }
+    if (br.tier === "overdeveloped") {
+      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total}, or equivalently the <span class="${tierClass}">${ordinal(br.rank_strong_to_weak)}</span> most overdeveloped pair.`;
+    }
+    return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total}. <span class="${tierClass}">As expected</span> under the simulated null (|z| &lt; 1.96).`;
+  })();
+
+  out.style.display = "block";
+  out.innerHTML = `
+    <h2>${br.topic_a_no}. ${br.topic_a_label}
+        <span class="muted" style="font-weight:400">×</span>
+        ${br.topic_b_no}. ${br.topic_b_label}</h2>
+    <p class="muted">
+      <span class="pill" style="background:${clusterColorHex[br.topic_a_cluster]}; color:#000">${br.topic_a_cluster}</span>
+      <span class="pill" style="background:${clusterColorHex[br.topic_b_cluster]}; color:#000">${br.topic_b_cluster}</span>
+    </p>
+
+    <div class="bridge-numbers">
+      <div class="stat"><div class="label">Observed co-exposure</div><div class="value">${br.observed.toFixed(3)}</div></div>
+      <div class="stat"><div class="label">Simulated mean</div><div class="value">${br.sim_mean.toFixed(3)}</div></div>
+      <div class="stat"><div class="label">95% CI (sim)</div><div class="value">[${br.ci_lo.toFixed(3)}, ${br.ci_hi.toFixed(3)}]</div></div>
+      <div class="stat"><div class="label">z-score</div><div class="value ${tierClass}">${br.z.toFixed(2)}</div></div>
+    </div>
+
+    <div class="bridge-rank">${rankSentence}</div>
+
+    <div class="chart-box" style="margin-top:18px">
+      <h3>Where the observed value sits relative to the simulated 95% CI</h3>
+      <div id="chart-bridge" style="height:120px"></div>
+    </div>
+  `;
+
+  // tiny strip plot: simulated CI as a thick band, observed as a vertical marker
+  const minX = Math.min(br.ci_lo, br.observed) - 0.05 * Math.abs(br.sim_mean);
+  const maxX = Math.max(br.ci_hi, br.observed) + 0.05 * Math.abs(br.sim_mean);
+  Plotly.newPlot("chart-bridge", [
+    {
+      x: [br.ci_lo, br.ci_hi],
+      y: [1, 1],
+      mode: "lines",
+      line: { color: "#9ca3af", width: 14 },
+      hoverinfo: "skip",
+      showlegend: false
+    },
+    {
+      x: [br.sim_mean],
+      y: [1],
+      mode: "markers",
+      marker: { color: "#374151", size: 10, symbol: "diamond" },
+      name: "Simulated mean",
+      hovertemplate: "Sim mean: %{x:.3f}<extra></extra>"
+    },
+    {
+      x: [br.observed],
+      y: [1],
+      mode: "markers",
+      marker: { color: br.tier === "underdeveloped" ? "#b04a3b" : br.tier === "overdeveloped" ? "#2d7a4d" : "#1f4e79",
+                size: 14, symbol: "line-ns-open", line: { width: 4 } },
+      name: "Observed",
+      hovertemplate: "Observed: %{x:.3f}<extra></extra>"
+    }
+  ], {
+    margin: { t: 10, r: 10, b: 28, l: 10 },
+    height: 120,
+    xaxis: { range: [minX, maxX], zeroline: false },
+    yaxis: { visible: false, range: [0.7, 1.3] },
+    showlegend: false,
+    plot_bgcolor: "#fff",
+    paper_bgcolor: "#fff"
+  }, plotlyConfig());
+}
+
+// ---- 6. helpers ----------------------------------------------------------
+function plotlyLayout(opts = {}) {
+  return {
+    margin: { t: 6, r: 10, b: 36, l: 48 },
+    xaxis: { gridcolor: "#eef0f2", zerolinecolor: "#e5e7eb", tickfont: { size: 11 } },
+    yaxis: { gridcolor: "#eef0f2", zerolinecolor: "#e5e7eb", tickfont: { size: 11 },
+             title: opts.yTitle ? { text: opts.yTitle, standoff: 8, font: { size: 11 } } : undefined },
+    plot_bgcolor: "#fff",
+    paper_bgcolor: "#fff",
+    showlegend: false
+  };
+}
+function plotlyConfig() {
+  return { displayModeBar: false, responsive: true };
+}
+function escape(s) {
+  if (s == null) return "";
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function ordinal(n) {
+  const s = ["th", "st", "nd", "rd"], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+// ---- 7. boot -------------------------------------------------------------
+(async function main() {
+  setupTabs();
+  try {
+    await loadAll();
+  } catch (err) {
+    document.body.innerHTML = `<div style="padding:40px"><h2>Could not load data</h2>
+      <p>Make sure the <code>data/</code> folder is alongside <code>index.html</code>
+         and contains the JSON files generated by <code>09_Website.R</code>.</p>
+      <pre>${err}</pre></div>`;
+    return;
+  }
+  document.getElementById("summary").textContent =
+    `${state.meta.n_papers.toLocaleString()} papers · ${state.meta.n_topics} topics · ${state.meta.n_clusters} clusters · ${state.meta.n_bridges.toLocaleString()} bridges · Article Under Review at JA`;
+  document.getElementById("about-numbers").textContent =
+    `${state.meta.n_papers.toLocaleString()} peer-reviewed articles across ${state.meta.journals.length} journals (${state.meta.journals.join(", ")}), ${state.meta.year_min}–${state.meta.year_max}. K = ${state.meta.n_topics} topics; ${state.meta.n_clusters} clusters; ${state.meta.n_bridges.toLocaleString()} bridges; ${state.meta.n_simulations} simulated worlds.`;
+  renderTcList();
+  renderPapersTable();
+  setupBridgeTab();
+})();
+</script>
+</body>
+</html>
