@@ -396,7 +396,10 @@ async function loadAll() {
 // ---- 2. tab nav ----------------------------------------------------------
 function setupTabs() {
   document.querySelectorAll("nav.tabs button").forEach(btn => {
-    btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+    btn.addEventListener("click", () => {
+      activateTab(btn.dataset.tab);
+      setHash({ tab: btn.dataset.tab });
+    });
   });
 }
 function activateTab(tab) {
@@ -445,6 +448,7 @@ function selectTopic(tno) {
     r.classList.toggle("selected", parseInt(r.dataset.topic) === tno)
   );
   renderTopicDetail(state.topicById.get(tno));
+  setHash({ topic: tno });
 }
 
 function selectCluster(name) {
@@ -452,6 +456,7 @@ function selectCluster(name) {
   state.selectedTopic = null;
   document.querySelectorAll(".topic-row").forEach(r => r.classList.remove("selected"));
   renderClusterDetail(state.clusters.find(c => c.name === name));
+  setHash({ cluster: name });
 }
 
 function renderTopicDetail(t) {
@@ -697,6 +702,7 @@ function selectPaperById(id) {
     tr.scrollIntoView({ block: "nearest" });
   }
   renderPaperDetail(paper);
+  setHash({ paper: id });
 }
 
 function renderPaperDetail(p) {
@@ -796,6 +802,9 @@ function pickBridgeTopic(tno) {
   }
   updateBridgeSlots();
   renderBridge();
+  if (state.bridgeA && state.bridgeB) {
+    setHash({ bridge: `${state.bridgeA}x${state.bridgeB}` });
+  }
 }
 
 function clearBridgeSelection() {
@@ -953,6 +962,69 @@ function pct(x) {
   if (x == null || isNaN(x)) return "";
   return (x * 100).toFixed(2) + "%";
 }
+
+// ---- deep-link hash routing -------------------------------------------------
+// Hash schemes:
+//   #topic=72            -> TC tab + select topic 72
+//   #cluster=Research    -> TC tab + select cluster
+//   #paper=123           -> Papers tab + select paper 123
+//   #bridge=28x62        -> Bridges tab + load that bridge
+//   #papers / #bridges / #tc / #about -> just the tab
+let suppressHashApply = false;
+function setHash(parts) {
+  let h = "";
+  if (parts.topic   != null) h = `#topic=${parts.topic}`;
+  else if (parts.cluster)    h = `#cluster=${encodeURIComponent(parts.cluster)}`;
+  else if (parts.paper  != null) h = `#paper=${parts.paper}`;
+  else if (parts.bridge)     h = `#bridge=${parts.bridge}`;
+  else if (parts.tab)        h = `#${parts.tab}`;
+  if (window.location.hash !== h) {
+    suppressHashApply = true;
+    history.replaceState(null, "", window.location.pathname + window.location.search + h);
+    setTimeout(() => { suppressHashApply = false; }, 30);
+  }
+}
+function applyHash() {
+  if (suppressHashApply) return;
+  const h = window.location.hash.slice(1);
+  if (!h) return; // leave default (TC tab, no selection)
+
+  const eq = h.indexOf("=");
+  if (eq === -1) {
+    if (["tc", "papers", "bridges", "about"].includes(h)) activateTab(h);
+    return;
+  }
+  const key = h.slice(0, eq);
+  const val = decodeURIComponent(h.slice(eq + 1));
+
+  if (key === "topic") {
+    const tno = parseInt(val);
+    const t = state.topicById.get(tno);
+    if (!t) return;
+    activateTab("tc");
+    // expand the parent cluster so the row is visible in the sidebar
+    document.querySelectorAll(".tc-list .cluster-header").forEach(h => {
+      if (h.textContent.includes(t.cluster)) h.nextElementSibling?.classList.add("open");
+    });
+    selectTopic(tno);
+  } else if (key === "cluster") {
+    activateTab("tc");
+    selectCluster(val);
+  } else if (key === "paper") {
+    activateTab("papers");
+    selectPaperById(parseInt(val));
+  } else if (key === "bridge") {
+    const [a, b] = val.split("x").map(s => parseInt(s));
+    if (!a || !b) return;
+    activateTab("bridges");
+    state.bridgeA = a;
+    state.bridgeB = b;
+    state.bridgeNext = "A";
+    updateBridgeSlots();
+    renderBridge();
+  }
+}
+window.addEventListener("hashchange", applyHash);
 function ordinal(n) {
   const s = ["th", "st", "nd", "rd"], v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
@@ -977,6 +1049,7 @@ function ordinal(n) {
   renderTcList();
   renderPapersTable();
   setupBridgeTab();
+  applyHash(); // honor #topic=72 etc. on first load and after share-link visits
 })();
 </script>
 </body>
