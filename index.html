@@ -251,8 +251,9 @@
   .bridge-numbers .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
   .bridge-numbers .stat .value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .bridge-rank { margin-top: 18px; padding: 12px; background: #fffbe8; border-left: 3px solid #f0c33c; border-radius: 4px; }
-  .bridge-tier-under { color: #b04a3b; font-weight: 600; }
-  .bridge-tier-over  { color: #2d7a4d; font-weight: 600; }
+  /* match the manuscript palette: overdeveloped = firebrick3, underdeveloped = deepskyblue4 */
+  .bridge-tier-under { color: #00688B; font-weight: 600; }
+  .bridge-tier-over  { color: #CD2626; font-weight: 600; }
   .bridge-tier-as    { color: var(--muted); font-weight: 600; }
 
   footer { color: var(--muted); font-size: 12px; padding: 30px 22px; border-top: 1px solid var(--line); margin-top: 40px; }
@@ -970,7 +971,7 @@ function renderBridge() {
       x: [br.observed],
       y: [1],
       mode: "markers",
-      marker: { color: br.tier === "underdeveloped" ? "#b04a3b" : br.tier === "overdeveloped" ? "#2d7a4d" : "#1f4e79",
+      marker: { color: br.tier === "underdeveloped" ? "#00688B" : br.tier === "overdeveloped" ? "#CD2626" : "#1f4e79",
                 size: 14, symbol: "line-ns-open", line: { width: 4 } },
       name: "Observed",
       hovertemplate: "Observed: %{x:.3f}<extra></extra>"
@@ -1043,18 +1044,24 @@ function renderRankedPartners(seedTno, out) {
   });
 }
 
-// Color a z-score badge: green for overdeveloped, red for underdeveloped, gray for as-expected.
-// Intensity scales with |z| beyond ±1.96.
+// Color a z-score badge to match the manuscript palette:
+//   overdeveloped (z > 0) = firebrick3   #CD2626
+//   underdeveloped (z < 0) = deepskyblue4 #00688B
+// Intensity scales with |z| beyond ±1.96; mild values blend toward white.
 function zBadgeStyle(z) {
   if (Math.abs(z) < 1.96) {
     return "background:#eef0f2; color:#5a636c";
   }
   const intensity = Math.min(1, (Math.abs(z) - 1.96) / 8); // 0..1
-  const lightness = 92 - intensity * 30;                   // 92% (mild) -> 62% (strong)
-  const sat       = 55 + intensity * 25;                   // 55% -> 80%
-  const hue       = z > 0 ? 140 : 0;                       // green / red
-  const text      = lightness < 75 ? "#fff" : "#1f2328";
-  return `background:hsl(${hue}, ${sat}%, ${lightness}%); color:${text}`;
+  const target = z > 0 ? [205, 38, 38] : [0, 104, 139];    // firebrick3 / deepskyblue4
+  const mix    = 0.20 + intensity * 0.80;                  // 0.20 (pale) -> 1.00 (full strength)
+  const r = Math.round(target[0] * mix + 255 * (1 - mix));
+  const g = Math.round(target[1] * mix + 255 * (1 - mix));
+  const b = Math.round(target[2] * mix + 255 * (1 - mix));
+  // pick text color by perceived luminance
+  const lum  = 0.299 * r + 0.587 * g + 0.114 * b;
+  const text = lum < 160 ? "#fff" : "#1f2328";
+  return `background:rgb(${r},${g},${b}); color:${text}`;
 }
 
 // ---- 6. helpers ----------------------------------------------------------
