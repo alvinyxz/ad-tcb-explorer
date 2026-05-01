@@ -159,14 +159,14 @@
   .paper-detail .empty { color: var(--muted); }
 
   /* bridges tab */
-  .bridge-box { border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
-  .bridge-slots {
-    display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px;
-    align-items: center; margin: 14px 0 18px;
+  .bridge-grid {
+    display: grid; grid-template-columns: 320px 1fr; gap: 22px; min-height: 70vh;
   }
+  .bridge-side { display: flex; flex-direction: column; gap: 14px; }
+  .bridge-slots-vert { display: flex; flex-direction: column; gap: 8px; }
   .slot {
     border: 1.5px solid var(--line); border-radius: 6px; padding: 10px 14px;
-    background: var(--soft); transition: all .15s ease;
+    background: var(--soft); transition: all .15s ease; cursor: pointer;
   }
   .slot.active { border-color: var(--accent); background: #eaf1f8; }
   .slot.filled { border-color: var(--ink); background: #fff; }
@@ -174,17 +174,21 @@
     display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
     color: var(--muted); font-weight: 600;
   }
+  .slot .slot-label .hint {
+    font-weight: 400; color: var(--muted); margin-left: 6px; font-size: 10px;
+    text-transform: none; letter-spacing: 0; opacity: .8;
+  }
   .slot .slot-value { display: block; font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 2px; }
   .slot .slot-value.empty { color: var(--muted); font-weight: 400; font-style: italic; }
   .bridge-clear-btn {
-    background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px;
-    font: inherit; cursor: pointer; color: var(--muted);
+    background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 7px 14px;
+    font: inherit; cursor: pointer; color: var(--muted); align-self: flex-start;
   }
   .bridge-clear-btn:hover { color: var(--ink); border-color: var(--ink); }
 
   .bridge-picker {
-    border: 1px solid var(--line); border-radius: 6px; max-height: 360px; overflow-y: auto;
-    margin-bottom: 18px; user-select: none;
+    border: 1px solid var(--line); border-radius: 6px; max-height: 60vh; overflow-y: auto;
+    user-select: none; flex: 1;
   }
   .bridge-picker .cluster-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -205,8 +209,33 @@
   .bridge-picker .topic-row.is-b { background: #fdf3e8; border-left-color: #d97706; }
   .bridge-picker .topic-row .prop { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
 
-  .bridge-result {
-    border: 1px solid var(--line); border-radius: 6px; padding: 22px; max-width: 900px;
+  .bridge-detail {
+    border: 1px solid var(--line); border-radius: 6px; padding: 22px 24px; min-height: 70vh;
+  }
+
+  /* ranked partner list (one-topic state) */
+  .partner-list table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .partner-list thead th {
+    text-align: left; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em; font-weight: 600;
+    padding: 8px 10px; border-bottom: 1px solid var(--line);
+  }
+  .partner-list thead th.num { text-align: right; }
+  .partner-list tbody td {
+    padding: 6px 10px; border-bottom: 1px solid var(--soft);
+  }
+  .partner-list tbody tr:hover { background: var(--soft); cursor: pointer; }
+  .partner-list .rank-col { color: var(--muted); width: 40px; text-align: right; }
+  .partner-list .topic-col { font-weight: 500; }
+  .partner-list .cluster-col { width: 1%; white-space: nowrap; }
+  .partner-list .z-col { width: 90px; text-align: right; font-weight: 600; }
+  .partner-list .cluster-mini {
+    display: inline-block; padding: 1px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; color: #000;
+  }
+  .z-badge {
+    display: inline-block; min-width: 60px; padding: 2px 8px; border-radius: 4px;
+    text-align: right; font-variant-numeric: tabular-nums;
   }
 
   /* per-column filters in the papers DataTable */
@@ -279,24 +308,29 @@
 
   <!-- BRIDGES TAB -->
   <section id="tab-bridges" class="panel">
-    <div class="bridge-box">
-      <p class="muted" style="margin-top:0">
-        Double-click a topic to set <b>Topic A</b>, then double-click another to set <b>Topic B</b>.
-        The card below reports observed co-exposure, the 95% interval from 500 simulated worlds, the z-score, and the bridge's rank among all 2,556.
-      </p>
-      <div class="bridge-slots">
-        <div class="slot active" id="slot-a">
-          <span class="slot-label">Topic A</span>
-          <span class="slot-value" id="slot-a-value">— double-click to set —</span>
+    <div class="bridge-grid">
+      <aside class="bridge-side">
+        <div class="bridge-slots-vert">
+          <div class="slot active" id="slot-a">
+            <span class="slot-label">Topic A <span class="hint">Required</span></span>
+            <span class="slot-value empty" id="slot-a-value">— double-click to set —</span>
+          </div>
+          <div class="slot" id="slot-b">
+            <span class="slot-label">Topic B <span class="hint">Optional</span></span>
+            <span class="slot-value empty" id="slot-b-value">— double-click to set —</span>
+          </div>
+          <button class="bridge-clear-btn" id="bridge-clear">Clear</button>
         </div>
-        <div class="slot" id="slot-b">
-          <span class="slot-label">Topic B</span>
-          <span class="slot-value" id="slot-b-value">— double-click to set —</span>
-        </div>
-        <button class="bridge-clear-btn" id="bridge-clear">Clear</button>
-      </div>
-      <div class="bridge-picker" id="bridge-picker"></div>
-      <div id="bridge-result" class="bridge-result" style="display:none"></div>
+        <div class="bridge-picker" id="bridge-picker"></div>
+      </aside>
+      <article class="bridge-detail" id="bridge-detail">
+        <p class="muted">
+          Double-click a topic in the left panel to set <b>Topic A</b>. The right panel will then list its 71 bridge partners,
+          ranked from most overdeveloped to most underdeveloped, color-coded by z-score.<br /><br />
+          Double-click a second topic to set <b>Topic B</b> and zoom in on a single bridge: observed co-exposure, the 95% interval
+          from 500 simulated worlds, the z-score, and where the pair ranks among all 2,556.
+        </p>
+      </article>
     </div>
   </section>
 
@@ -418,7 +452,7 @@ function renderTcList() {
       <span><span class="swatch" style="background:${clusterColor[cl.name]}"></span>${cl.name}</span>
       <span class="muted" style="font-size:11px">${pct(cl.prop)}</span>`;
     const body = document.createElement("div");
-    body.className = "cluster-body";
+    body.className = "cluster-body"; // collapsed by default; click cluster header to expand
 
     cl.topic_nos.forEach(tno => {
       const t = state.topicById.get(tno);
@@ -744,13 +778,23 @@ function renderPaperDetail(p) {
 }
 
 // ---- 5. Bridges tab ------------------------------------------------------
-let bridgeKey = null; // "a:b" lookup; ensures we find the bridge in either order
+let bridgeKey = null;            // "a:b" -> bridge object lookup (either order)
+let partnersByTopic = null;      // topic_no -> [{partner_no, z, tier}, ...] sorted by z desc
+
 function buildBridgeIndex() {
   bridgeKey = new Map();
   state.bridges.forEach(b => {
     bridgeKey.set(`${b.topic_a_no}:${b.topic_b_no}`, b);
     bridgeKey.set(`${b.topic_b_no}:${b.topic_a_no}`, b);
   });
+  // build the topic -> 71 partners index for the one-topic ranked view
+  partnersByTopic = new Map();
+  state.topics.forEach(t => partnersByTopic.set(t.topic_no, []));
+  state.bridges.forEach(b => {
+    partnersByTopic.get(b.topic_a_no).push({ partner_no: b.topic_b_no, z: b.z, tier: b.tier });
+    partnersByTopic.get(b.topic_b_no).push({ partner_no: b.topic_a_no, z: b.z, tier: b.tier });
+  });
+  partnersByTopic.forEach(arr => arr.sort((a, b) => b.z - a.z)); // most overdeveloped first
 }
 
 function setupBridgeTab() {
@@ -761,7 +805,6 @@ function setupBridgeTab() {
   renderBridgePicker();
   updateBridgeSlots();
   document.getElementById("bridge-clear").addEventListener("click", clearBridgeSelection);
-  // also let users click slot boxes to choose which slot is being filled next
   document.getElementById("slot-a").addEventListener("click", () => { state.bridgeNext = "A"; updateBridgeSlots(); });
   document.getElementById("slot-b").addEventListener("click", () => { state.bridgeNext = "B"; updateBridgeSlots(); });
 }
@@ -804,6 +847,8 @@ function pickBridgeTopic(tno) {
   renderBridge();
   if (state.bridgeA && state.bridgeB) {
     setHash({ bridge: `${state.bridgeA}x${state.bridgeB}` });
+  } else if (state.bridgeA || state.bridgeB) {
+    setHash({ bridge: state.bridgeA || state.bridgeB });
   }
 }
 
@@ -812,7 +857,14 @@ function clearBridgeSelection() {
   state.bridgeB = null;
   state.bridgeNext = "A";
   updateBridgeSlots();
-  document.getElementById("bridge-result").style.display = "none";
+  document.getElementById("bridge-detail").innerHTML = `
+    <p class="muted">
+      Double-click a topic in the left panel to set <b>Topic A</b>. The right panel will then list its 71 bridge partners,
+      ranked from most overdeveloped to most underdeveloped, color-coded by z-score.<br /><br />
+      Double-click a second topic to set <b>Topic B</b> and zoom in on a single bridge: observed co-exposure, the 95% interval
+      from 500 simulated worlds, the z-score, and where the pair ranks among all 2,556.
+    </p>`;
+  setHash({ tab: "bridges" });
 }
 
 function updateBridgeSlots() {
@@ -844,16 +896,24 @@ function updateBridgeSlots() {
 function renderBridge() {
   const a = state.bridgeA;
   const b = state.bridgeB;
-  const out = document.getElementById("bridge-result");
-  if (!a || !b) { out.style.display = "none"; return; }
+  const out = document.getElementById("bridge-detail");
+
+  // case 1: neither selected — leave the placeholder (clearBridgeSelection already wrote one)
+  if (!a && !b) return;
+
+  // case 2: exactly one selected — show that topic's 71 partners ranked by z
+  if ((!a) !== (!b)) {
+    renderRankedPartners(a || b, out);
+    return;
+  }
+
+  // case 3: both selected — show the bridge card
   if (a === b) {
-    out.style.display = "block";
     out.innerHTML = `<p class="muted">Pick two different topics.</p>`;
     return;
   }
   const br = bridgeKey.get(`${a}:${b}`);
   if (!br) {
-    out.style.display = "block";
     out.innerHTML = `<p class="muted">No bridge data found for that pair.</p>`;
     return;
   }
@@ -870,7 +930,6 @@ function renderBridge() {
     return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most underdeveloped to most overdeveloped.<br /><span class="${tierClass}">As expected</span> under the simulated null (|z| &lt; 1.96).`;
   })();
 
-  out.style.display = "block";
   out.innerHTML = `
     <h2>${br.topic_a_no}. ${br.topic_a_label}
         <span class="muted" style="font-weight:400">×</span>
@@ -933,6 +992,77 @@ function renderBridge() {
     plot_bgcolor: "#fff",
     paper_bgcolor: "#fff"
   }, plotlyConfig());
+}
+
+// One-topic state: list the seed topic's 71 bridge partners ranked by z (most overdeveloped first)
+function renderRankedPartners(seedTno, out) {
+  const seed = state.topicById.get(seedTno);
+  if (!seed) return;
+  const partners = partnersByTopic.get(seedTno) || [];
+  const rows = partners.map((p, i) => {
+    const t = state.topicById.get(p.partner_no);
+    if (!t) return "";
+    return `
+      <tr data-partner="${p.partner_no}">
+        <td class="rank-col">${i + 1}</td>
+        <td class="topic-col">${p.partner_no}. ${escape(t.label)}</td>
+        <td class="cluster-col">
+          <span class="cluster-mini" style="background:${clusterColorHex[t.cluster]}">${t.cluster}</span>
+        </td>
+        <td class="z-col"><span class="z-badge" style="${zBadgeStyle(p.z)}">${p.z >= 0 ? "+" : ""}${p.z.toFixed(2)}</span></td>
+      </tr>`;
+  }).join("");
+
+  out.innerHTML = `
+    <div class="detail-header">
+      <span class="kicker">Bridges from</span>
+      <h2 class="detail-title">${seed.topic_no}. ${seed.label}</h2>
+      <span class="cluster-pill" style="background:${clusterColorHex[seed.cluster]}">${seed.cluster}</span>
+    </div>
+    <p class="muted" style="margin-top:-6px">
+      Ranked from most <span class="bridge-tier-over">overdeveloped</span>
+      to most <span class="bridge-tier-under">underdeveloped</span> partner.
+      Click any row to set it as the second topic and zoom in on that bridge.
+    </p>
+    <div class="partner-list">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">#</th>
+            <th>Partner topic</th>
+            <th>Cluster</th>
+            <th class="num">z-score</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+
+  // single-click in this list = pick as Topic B (or A if user explicitly toggled the slot)
+  out.querySelectorAll("tbody tr").forEach(tr => {
+    tr.addEventListener("click", () => {
+      const tno = parseInt(tr.dataset.partner);
+      // make sure we don't overwrite the already-selected seed; pick into the empty slot
+      if (state.bridgeA == null) state.bridgeNext = "A";
+      else if (state.bridgeB == null) state.bridgeNext = "B";
+      pickBridgeTopic(tno);
+    });
+  });
+}
+
+// Color a z-score badge: green for overdeveloped, red for underdeveloped, gray for as-expected.
+// Intensity scales with |z| beyond ±1.96.
+function zBadgeStyle(z) {
+  if (Math.abs(z) < 1.96) {
+    return "background:#eef0f2; color:#5a636c";
+  }
+  const intensity = Math.min(1, (Math.abs(z) - 1.96) / 8); // 0..1
+  const lightness = 92 - intensity * 30;                   // 92% (mild) -> 62% (strong)
+  const sat       = 55 + intensity * 25;                   // 55% -> 80%
+  const hue       = z > 0 ? 140 : 0;                       // green / red
+  const text      = lightness < 75 ? "#fff" : "#1f2328";
+  return `background:hsl(${hue}, ${sat}%, ${lightness}%); color:${text}`;
 }
 
 // ---- 6. helpers ----------------------------------------------------------
@@ -1014,12 +1144,22 @@ function applyHash() {
     activateTab("papers");
     selectPaperById(parseInt(val));
   } else if (key === "bridge") {
-    const [a, b] = val.split("x").map(s => parseInt(s));
-    if (!a || !b) return;
     activateTab("bridges");
-    state.bridgeA = a;
-    state.bridgeB = b;
-    state.bridgeNext = "A";
+    if (val.includes("x")) {
+      // #bridge=28x62 -> focused bridge between two topics
+      const [a, b] = val.split("x").map(s => parseInt(s));
+      if (!a || !b) return;
+      state.bridgeA = a;
+      state.bridgeB = b;
+      state.bridgeNext = "A";
+    } else {
+      // #bridge=28 -> ranked partner list for one topic
+      const tno = parseInt(val);
+      if (!tno) return;
+      state.bridgeA = tno;
+      state.bridgeB = null;
+      state.bridgeNext = "B";
+    }
     updateBridgeSlots();
     renderBridge();
   }
