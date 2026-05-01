@@ -141,7 +141,7 @@
     display: inline-block; background: var(--soft); padding: 2px 8px; margin: 2px;
     border-radius: 4px; color: var(--ink);
   }
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 6px; }
+  .two-col { display: grid; grid-template-columns: 1.7fr 1fr; gap: 18px; margin-top: 6px; }
   .chart-box { border: 1px solid var(--line); border-radius: 5px; padding: 10px 12px; background: #fff; }
   .chart-box h3 { margin-bottom: 6px; }
   .top-papers ol { padding-left: 22px; margin: 6px 0; }
@@ -548,15 +548,11 @@ function renderTopicDetail(t) {
     </div>
   `;
 
-  // longitudinal line
-  Plotly.newPlot("chart-topic-long", [{
-    x: t.longitudinal.map(d => d.year),
-    y: t.longitudinal.map(d => d.prop),
-    mode: "lines+markers",
-    line: { color: clusterColorHex[t.cluster], width: 2 },
-    marker: { color: clusterColorHex[t.cluster], size: 6 },
-    hovertemplate: "%{x}: %{y:.2%}<extra></extra>"
-  }], plotlyLayout({ yPercent: true }), plotlyConfig());
+  // longitudinal line: mean across journals + faint per-journal lines (locked y-range)
+  {
+    const p = buildLongitudinalPlot(t.longitudinal, t.longitudinal_by_journal, clusterColorHex[t.cluster]);
+    Plotly.newPlot("chart-topic-long", p.data, p.layout, plotlyConfig());
+  }
 
   // journal bar
   Plotly.newPlot("chart-topic-journal", [{
@@ -623,14 +619,10 @@ function renderClusterDetail(cl) {
       <ol>${memberLis}</ol>
     </div>
   `;
-  Plotly.newPlot("chart-cluster-long", [{
-    x: cl.longitudinal.map(d => d.year),
-    y: cl.longitudinal.map(d => d.prop),
-    mode: "lines+markers",
-    line: { color: clusterColorHex[cl.name], width: 2 },
-    marker: { color: clusterColorHex[cl.name], size: 6 },
-    hovertemplate: "%{x}: %{y:.2%}<extra></extra>"
-  }], plotlyLayout({ yPercent: true }), plotlyConfig());
+  {
+    const p = buildLongitudinalPlot(cl.longitudinal, cl.longitudinal_by_journal, clusterColorHex[cl.name]);
+    Plotly.newPlot("chart-cluster-long", p.data, p.layout, plotlyConfig());
+  }
   Plotly.newPlot("chart-cluster-journal", [{
     x: cl.journal_means.map(d => d.journal),
     y: cl.journal_means.map(d => d.mean_prop),
@@ -1091,6 +1083,73 @@ function escape(s) {
 function pct(x) {
   if (x == null || isNaN(x)) return "";
   return (x * 100).toFixed(2) + "%";
+}
+
+// Build the trace bundle for a longitudinal chart that shows the across-journal
+// mean as a bold cluster-colored line, plus one faint line per journal with a
+// distinct marker shape so users can pick them out without color-coding chaos.
+const JOURNAL_MARKER = {
+  IJA:   "square-open",
+  JA:    "circle-open",
+  JAR:   "triangle-up-open",
+  JCIRA: "triangle-down-open",
+  JIAD:  "diamond-open"
+};
+function longitudinalTraces(meanSeries, journalSeries, color) {
+  // mean trace — the headline line, drawn last so it sits on top.
+  // legendrank pins it to the start of the legend even though it draws last.
+  // Hover label puts the trace name inline with the value (instead of a side-box)
+  // by emptying the <extra></extra> block.
+  const mean = {
+    x: meanSeries.map(d => d.year),
+    y: meanSeries.map(d => d.prop),
+    mode: "lines+markers", name: "Mean",
+    line:   { color: color, width: 2.5 },
+    marker: { color: color, size: 7, symbol: "circle" },
+    hovertemplate: "%{x}: %{y:.2%} Mean<extra></extra>",
+    legendrank: 1
+  };
+  // faint per-journal traces, distinct marker shape, alphabetical
+  const journals = [...new Set((journalSeries || []).map(d => d.journal))].sort();
+  const perJournal = journals.map((j, i) => {
+    const ds = journalSeries.filter(d => d.journal === j);
+    return {
+      x: ds.map(d => d.year),
+      y: ds.map(d => d.prop),
+      mode: "lines+markers", name: j,
+      line:   { color: "#9ca3af", width: 1, dash: "dot" },
+      marker: { color: "#9ca3af", size: 6, symbol: JOURNAL_MARKER[j] || "circle" },
+      opacity: 0.55,
+      hovertemplate: `%{x}: %{y:.2%} ${j}<extra></extra>`,
+      legendrank: 10 + i
+    };
+  });
+  return [...perJournal, mean]; // mean drawn last = on top
+}
+// Lock the y-axis range so toggling legend traces does not rescale the plot.
+// Legend lives on the right (vertical) so it never overlaps the chart area.
+function longitudinalLayout(yMax) {
+  const base = plotlyLayout({ yPercent: true });
+  return {
+    ...base,
+    showlegend: true,
+    legend: {
+      orientation: "v", x: 1.02, y: 0.5, xanchor: "left", yanchor: "middle",
+      font: { size: 10 }, bgcolor: "rgba(0,0,0,0)"
+    },
+    margin: { t: 10, r: 100, b: 36, l: 56 },
+    yaxis: { ...base.yaxis, autorange: false, range: [0, yMax] }
+  };
+}
+// Convenience: wrap traces + computed range + layout into one object.
+function buildLongitudinalPlot(meanSeries, journalSeries, color) {
+  const data = longitudinalTraces(meanSeries, journalSeries, color);
+  const all = [
+    ...meanSeries.map(d => d.prop),
+    ...(journalSeries || []).map(d => d.prop)
+  ].filter(v => v != null);
+  const yMax = Math.max(...all) * 1.10;
+  return { data, layout: longitudinalLayout(yMax) };
 }
 
 // ---- deep-link hash routing -------------------------------------------------
