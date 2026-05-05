@@ -92,6 +92,25 @@
 
   .tc-detail { border: 1px solid var(--line); border-radius: 6px; padding: 22px 24px; min-height: 78vh; }
 
+  /* About tab — its own clearer hierarchy (overrides the global compact h3) */
+  #tab-about h2 {
+    font-size: 22px; font-weight: 700; color: var(--ink);
+    margin: 4px 0 14px 0; line-height: 1.2;
+  }
+  #tab-about > p { font-size: 14px; line-height: 1.6; margin: 0 0 12px 0; }
+  #tab-about > p:first-of-type { font-size: 15px; }
+  #tab-about h3 {
+    font-size: 16px; font-weight: 700; color: var(--ink);
+    text-transform: none; letter-spacing: 0;
+    margin: 28px 0 10px 0; padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  #tab-about p b { color: var(--accent); font-weight: 700; }
+  #tab-about code {
+    background: var(--soft); padding: 1px 6px; border-radius: 3px;
+    font-size: 12.5px; color: var(--ink);
+  }
+
   /* hierarchy for the topic / cluster detail panel */
   .detail-header { margin-bottom: 18px; }
   .detail-header .kicker {
@@ -144,6 +163,29 @@
   .two-col { display: grid; grid-template-columns: 1.7fr 1fr; gap: 18px; margin-top: 6px; }
   .chart-box { border: 1px solid var(--line); border-radius: 5px; padding: 10px 12px; background: #fff; }
   .chart-box h3 { margin-bottom: 6px; }
+
+  /* Custom legend for the longitudinal chart — chips replace Plotly's default
+     click/double-click legend with a clearer toggle UI */
+  .chart-legend {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin: 4px 0 8px 0; font-size: 11px;
+  }
+  .chart-legend .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px;
+    background: #fff; cursor: pointer; user-select: none; font: inherit;
+    transition: opacity .12s ease, background .12s ease;
+  }
+  .chart-legend .chip:hover { border-color: var(--ink); }
+  .chart-legend .chip.off { opacity: 0.4; background: var(--soft); }
+  .chart-legend .chip svg { display: block; }
+  /* master toggle uses the same chip shape as the per-trace chips so the row reads as one group */
+  .chart-legend .preset {
+    padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px;
+    background: var(--soft); cursor: pointer; font: inherit; font-size: 11px;
+    color: var(--muted); user-select: none;
+  }
+  .chart-legend .preset:hover { border-color: var(--ink); color: var(--ink); }
   .top-papers ol { padding-left: 22px; margin: 6px 0; }
   .top-papers li { margin: 6px 0; }
   .top-papers a { font-weight: 500; }
@@ -256,7 +298,100 @@
   .bridge-tier-over  { color: #CD2626; font-weight: 600; }
   .bridge-tier-as    { color: var(--muted); font-weight: 600; }
 
-  footer { color: var(--muted); font-size: 12px; padding: 30px 22px; border-top: 1px solid var(--line); margin-top: 40px; }
+
+  /* ----------------------------------------------------------------------- */
+  /* Tablet portrait and below: stack the tab-level grids. The threshold is   */
+  /* set so the detail pane is always at least 2x the sidebar — at narrower   */
+  /* widths (e.g. iPad Pro portrait), the visualization gets too cramped.    */
+  /* ----------------------------------------------------------------------- */
+  @media (max-width: 1024px) {
+    .tc-grid, .papers-grid, .bridge-grid {
+      grid-template-columns: 1fr;
+      min-height: 0;
+      gap: 14px;
+    }
+    .tc-list, .bridge-picker { max-height: 45vh; }
+    /* paper detail panel no longer sticky once it flows under the table */
+    .paper-detail { position: static; max-height: none; }
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* Phone (≤ 768px): full compact mode — smaller fonts, tighter padding,    */
+  /* horizontal-scrolling tabs, two-col chart row stacks, etc.                */
+  /* ----------------------------------------------------------------------- */
+  @media (max-width: 768px) {
+    body { font-size: 13px; }
+    header.site {
+      padding: 12px 14px;
+      flex-direction: column; align-items: flex-start; gap: 4px;
+    }
+    header.site h1 { font-size: 15px; line-height: 1.25; }
+    header.site .summary { font-size: 11px; line-height: 1.35; }
+
+    nav.tabs {
+      padding: 0 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    nav.tabs::-webkit-scrollbar { display: none; }
+    nav.tabs button { padding: 14px 12px; font-size: 13px; flex-shrink: 0; }
+
+    main { padding: 14px 14px 50px; }
+
+    .tc-detail, .bridge-detail { padding: 16px 14px; }
+    .paper-detail { padding: 16px 14px; }
+
+    /* charts side-by-side -> stacked */
+    .two-col { grid-template-columns: 1fr; gap: 12px; }
+    .chart-box { padding: 8px 10px; }
+
+    /* detail panel typography: tighter */
+    .detail-title { font-size: 21px; }
+    .detail-meta-strip { gap: 24px; padding: 10px 0; margin-bottom: 18px; }
+    .detail-meta-strip .value { font-size: 17px; }
+    .detail-section { margin-bottom: 20px; }
+    .detail-section + .detail-section { padding-top: 16px; }
+
+    /* bridge result: stat cells 2 across instead of 4 */
+    .bridge-numbers { grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .bridge-numbers .stat { padding: 10px; }
+    .bridge-numbers .stat .value { font-size: 18px; }
+
+    /* bridge slots: a touch tighter, still tappable */
+    .bridge-slots-vert { gap: 6px; }
+    .slot { padding: 9px 12px; }
+    .slot .slot-value { font-size: 13.5px; }
+
+    /* prevent any inadvertent horizontal page scroll on small viewports */
+    html, body { overflow-x: hidden; }
+
+    /* DataTables compact + tight column widths so Title gets the room */
+    table.dataTable { font-size: 12px; table-layout: fixed; width: 100% !important; }
+    .dataTables_wrapper { width: 100%; max-width: 100%; }
+    table.dataTable thead th { padding: 5px 3px; }
+    table.dataTable tbody td { padding: 5px 3px; word-wrap: break-word; overflow-wrap: anywhere; }
+    table.dataTable thead tr.filters th { padding: 3px 2px; }
+    table.dataTable thead tr.filters select,
+    table.dataTable thead tr.filters input { font-size: 10.5px; padding: 2px 3px; min-width: 0; max-width: 100%; }
+    /* Year (1) / Journal (2) / Link (4) hard-capped narrow; Title (3) absorbs the rest */
+    #papers-table thead th:nth-child(1),
+    #papers-table tbody td:nth-child(1) { width: 32px; min-width: 32px; max-width: 32px; }
+    #papers-table thead th:nth-child(2),
+    #papers-table tbody td:nth-child(2) { width: 38px; min-width: 38px; max-width: 38px; font-size: 10.5px; }
+    #papers-table thead th:nth-child(4),
+    #papers-table tbody td:nth-child(4) { width: 28px; min-width: 28px; max-width: 28px; text-align: center; }
+
+    /* partner list: drop the desktop min-width so the 4 columns reflow inside viewport */
+    .partner-list { overflow-x: visible; }
+    .partner-list table { min-width: 0; width: 100%; }
+    .partner-list thead th { padding: 6px 4px; font-size: 10px; }
+    .partner-list tbody td { padding: 5px 4px; word-wrap: break-word; }
+    .partner-list .rank-col { width: 28px; }
+    .partner-list .z-col   { width: 56px; }
+    .partner-list .cluster-mini { font-size: 10px; padding: 1px 6px; white-space: normal; }
+    .partner-list .topic-col { font-size: 12px; line-height: 1.3; }
+
+  }
 </style>
 </head>
 <body>
@@ -314,11 +449,11 @@
         <div class="bridge-slots-vert">
           <div class="slot active" id="slot-a">
             <span class="slot-label">Topic A <span class="hint">Required</span></span>
-            <span class="slot-value empty" id="slot-a-value">— double-click to set —</span>
+            <span class="slot-value empty" id="slot-a-value">— click a topic to set —</span>
           </div>
           <div class="slot" id="slot-b">
             <span class="slot-label">Topic B <span class="hint">Optional</span></span>
-            <span class="slot-value empty" id="slot-b-value">— double-click to set —</span>
+            <span class="slot-value empty" id="slot-b-value">— click a topic to set —</span>
           </div>
           <button class="bridge-clear-btn" id="bridge-clear">Clear</button>
         </div>
@@ -326,9 +461,9 @@
       </aside>
       <article class="bridge-detail" id="bridge-detail">
         <p class="muted">
-          Double-click a topic in the left panel to set <b>Topic A</b>. The right panel will then list its 71 bridge partners,
+          Click a topic in the left panel to set <b>Topic A</b>. The right panel will then list its 71 bridge partners,
           ranked from most overdeveloped to most underdeveloped, color-coded by z-score.<br /><br />
-          Double-click a second topic to set <b>Topic B</b> and zoom in on a single bridge: observed co-exposure, the 95% interval
+          Click a second topic to set <b>Topic B</b> and zoom in on a single bridge: observed co-exposure, the 95% interval
           from 500 simulated worlds, the z-score, and where the pair ranks among all 2,556.
         </p>
       </article>
@@ -338,32 +473,63 @@
   <!-- ABOUT TAB -->
   <section id="tab-about" class="panel">
     <h2>About this site</h2>
-    <p>This is the public companion site to the paper that introduces the topic-cluster-bridge (TCB)
-       methodological framework for reviewing a decade of advertising scholarship.</p>
-    <p id="about-numbers" class="muted"></p>
-    <h3>How to read each tab</h3>
-    <p><b>Topics &amp; Clusters.</b> The 72 topics, grouped into 8 thematic clusters. Each topic shows
-       its top Prob and FREX words, its overall prevalence, how it has trended across years, how strongly
-       each journal has emphasized it, and its most representative papers.</p>
-    <p><b>Papers.</b> All 1,674 peer-reviewed articles. Filter by year or journal,
-       search by title, then click any row to see that paper's top topics.</p>
-    <p><b>Bridges.</b> Each of the 2,556 unique topic pairs. Pick two topics; we report the observed
-       co-exposure (sum of the products of topic proportions across articles), the 95% interval from
-       500 simulated worlds (the same procedure as in the paper), the z-score, and where the pair
-       ranks from most underdeveloped to most overdeveloped.</p>
+    <p>This is the public companion site to a manuscript currently under review at the
+       <i>Journal of Advertising</i>, which introduces the topic-cluster-bridge (TCB) methodological
+       framework for reviewing a decade of advertising scholarship. If you draw on the paper or this
+       explorer in your own work, please cite: Author(s). (under review).
+       <i>Title withheld for anonymous review</i>. <i>Journal of Advertising</i>. The full citation
+       will be provided upon acceptance.</p>
+
+    <h3>What you can do here</h3>
+
+    <p><b>Topics &amp; Clusters.</b> The sidebar lists 8 thematic clusters; expand any header to see its
+       member topics with within-cluster proportions. Clicking a <i>cluster</i> opens a cluster-level
+       view: year-over-year prevalence (with the across-journal mean line plus five toggleable per-journal
+       lines), mean prevalence by journal, and the cluster's member topics ranked by within-cluster
+       prevalence. Clicking a <i>topic</i> opens a topic-level view: the top 20 Prob words and top 20 FREX
+       words, the same year-over-year and per-journal charts, and a list of the top representative papers.
+       Click any bar in the per-journal chart to filter the papers list to just that journal; click again
+       or use "show all" to reset.</p>
+
+    <p><b>Papers.</b> All 1,674 peer-reviewed articles in a single sortable, filterable table. Filter by
+       year or journal via the dropdowns at the top of each column, search titles via the title-column
+       input, or sort by any column. Click any row to see that paper's top 10 topics with proportions in
+       the side panel. Click any topic in the side panel to jump to that topic in Topics &amp; Clusters.
+       Initial row order is randomized so the page does not always open on the same year or journal.</p>
+
+    <p><b>Bridges.</b> Each of the 2,556 unique topic pairs. The left panel is a cluster-grouped topic
+       picker with two slots, <i>Topic A</i> (required) and <i>Topic B</i> (optional). Click a topic to
+       fill the next empty slot. With one topic selected, the right panel lists all 71 of its bridge
+       partners ranked from most overdeveloped (firebrick) to most underdeveloped (deepskyblue),
+       color-coded by z-score. Click any partner row to lock in a second topic and zoom in on a single
+       bridge: observed co-exposure, the 95% interval from 500 simulated worlds, the z-score, the bridge's
+       rank from most underdeveloped to most overdeveloped, and the top 10 papers contributing to that
+       bridge by raw co-exposure (θ<sub>A</sub>·θ<sub>B</sub>).</p>
+
+    <h3>Shareable links</h3>
+    <p>Every selection updates the URL, so you can copy a link from your address bar and send it to a
+       collaborator and they will land on the same view. The patterns:
+       <code>#topic=72</code> (a topic),
+       <code>#cluster=Research</code> (a cluster),
+       <code>#paper=123</code> (a paper with its topic mix),
+       <code>#bridge=28</code> (one topic's 71 ranked bridge partners),
+       <code>#bridge=28x62</code> (a single bridge focused).</p>
+
+    <h3>Methods in brief</h3>
+    <p>Topics come from structural topic modeling (STM) with K = 72, selected via semantic coherence,
+       exclusivity, and author consensus, with journal name and year as covariates. Clusters are 8
+       qualitative thematic groupings of the 72 topics. Bridges use a bipartite network projection where
+       bridge strength is the summed cross-article co-exposure (product of topic proportions across all
+       1,674 articles). Each bridge is benchmarked against 500 simulated worlds; we report z-scores
+       indicating over- or under-development relative to the null. Full methodology is in the manuscript.</p>
   </section>
 
 </main>
 
-<footer>
-  This explorer accompanies a manuscript currently under review at the <i>Journal of Advertising</i>.<br />
-  If you draw on the paper or this site in your own work, please cite: Author(s). (under review). <i>Title withheld for anonymous review</i>. <i>Journal of Advertising</i>. Full citation will be provided upon acceptance.
-</footer>
-
 <!-- libraries -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
+<script src="https://cdn.plot.ly/plotly-basic-2.32.0.min.js" charset="utf-8"></script>
 
 <script>
 // ============================================================================
@@ -410,12 +576,15 @@ const state = {
 
 // ---- 1. data load --------------------------------------------------------
 async function loadAll() {
-  const [meta, topics, clusters, papers, topicPapers, bridges] = await Promise.all([
+  // Eager-load everything except bridge_papers.json (the largest file, ~1.1MB raw).
+  // We defer bridge_papers.json to the first time the user picks a second topic.
+  const [meta, topics, clusters, papers, topicPapers, topicPapersByJournal, bridges] = await Promise.all([
     fetch("data/meta.json").then(r => r.json()),
     fetch("data/topics.json").then(r => r.json()),
     fetch("data/clusters.json").then(r => r.json()),
     fetch("data/papers.json").then(r => r.json()),
     fetch("data/topic_papers.json").then(r => r.json()),
+    fetch("data/topic_papers_by_journal.json").then(r => r.json()).catch(() => ({})),
     fetch("data/bridges.json").then(r => r.json())
   ]);
   state.meta = meta;
@@ -423,9 +592,23 @@ async function loadAll() {
   state.clusters = clusters;
   state.papers = papers;
   state.topicPapers = topicPapers;
+  state.topicPapersByJournal = topicPapersByJournal; // {topic_no: {journal: [papers]}}
   state.bridges = bridges;
+  state.bridgePapers = null;                         // populated lazily by ensureBridgePapers()
   state.topicById = new Map(topics.map(t => [t.topic_no, t]));
   state.paperById = new Map(papers.map(p => [p.id, p]));
+}
+
+// Lazy fetch for the heaviest JSON. Resolves to the bridge_papers object,
+// keyed by "min:max" of topic_a_no:topic_b_no. Cached after first call.
+let bridgePapersPromise = null;
+function ensureBridgePapers() {
+  if (bridgePapersPromise) return bridgePapersPromise;
+  bridgePapersPromise = fetch("data/bridge_papers.json")
+    .then(r => r.json())
+    .then(d => { state.bridgePapers = d; return d; })
+    .catch(() => { state.bridgePapers = {}; return {}; });
+  return bridgePapersPromise;
 }
 
 // ---- 2. tab nav ----------------------------------------------------------
@@ -499,11 +682,49 @@ function renderTopicDetail(t) {
   const probWords = (t.prob_words || []).map(w => `<span class="word">${w}</span>`).join(" ");
   const frexWords = (t.frex_words || []).map(w => `<span class="word">${w}</span>`).join(" ");
 
-  const papers = state.topicPapers[t.topic_no] || [];
-  const paperList = papers.slice(0, 15).map(p =>
-    `<li><a href="#" data-paper="${p.paper_id}">${escape(p.title)}</a>
-       <div class="meta-line">${p.year} · ${p.journal}${p.url ? ` · <a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : ""} · θ = ${pct(p.prop)}</div></li>`
-  ).join("");
+  // Filter state (closure): null = "all journals", otherwise a journal short code.
+  // Click a bar in the journal-prevalence chart to filter; click again to reset.
+  let topPapersFilter = null;
+
+  function buildTopPapersHtml() {
+    let papers;
+    if (topPapersFilter && state.topicPapersByJournal && state.topicPapersByJournal[t.topic_no]?.[topPapersFilter]) {
+      papers = state.topicPapersByJournal[t.topic_no][topPapersFilter];
+    } else {
+      papers = state.topicPapers[t.topic_no] || [];
+    }
+    return papers.slice(0, 15).map(p => {
+      const journalChunk = topPapersFilter ? "" : ` · ${p.journal ?? ""}`;
+      const doi = p.url ? ` · <a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : "";
+      return `<li><a href="#" data-paper="${p.paper_id}">${escape(p.title)}</a>
+        <div class="meta-line">${p.year}${journalChunk}${doi} · θ = ${pct(p.prop)}</div></li>`;
+    }).join("");
+  }
+
+  function rerenderTopPapers() {
+    const headingEl = document.getElementById("topic-top-papers-heading");
+    const listEl    = document.getElementById("topic-top-papers");
+    if (!headingEl || !listEl) return;
+    headingEl.innerHTML = topPapersFilter
+      ? `Top representative papers in ${topPapersFilter}
+         <a href="#" id="reset-top-papers" style="font-weight:400; font-size:11px; margin-left:8px; text-transform:none; letter-spacing:0">show all</a>`
+      : `Top representative papers`;
+    listEl.innerHTML = buildTopPapersHtml();
+    const reset = document.getElementById("reset-top-papers");
+    if (reset) reset.addEventListener("click", e => {
+      e.preventDefault();
+      topPapersFilter = null;
+      rerenderTopPapers();
+    });
+    listEl.querySelectorAll("a[data-paper]").forEach(a => {
+      a.addEventListener("click", e => {
+        e.preventDefault();
+        const id = parseInt(a.dataset.paper);
+        activateTab("papers");
+        setTimeout(() => selectPaperById(id), 60);
+      });
+    });
+  }
 
   el.innerHTML = `
     <div class="detail-header">
@@ -534,29 +755,35 @@ function renderTopicDetail(t) {
       <div class="two-col">
         <div class="chart-box">
           <h3>Year-over-year prevalence</h3>
+          <div id="legend-topic-long" class="chart-legend"></div>
           <div id="chart-topic-long" style="height:240px"></div>
         </div>
         <div class="chart-box">
           <h3>Mean prevalence by journal</h3>
-          <div id="chart-topic-journal" style="height:240px"></div>
+          <p class="muted" style="font-size:11px; margin: 0 0 6px 0">Click a bar to filter the papers list below.</p>
+          <div id="chart-topic-journal" style="height:240px; cursor:pointer"></div>
         </div>
       </div>
     </div>
 
     <div class="detail-section top-papers">
-      <h3>Top representative papers</h3>
-      <ol>${paperList}</ol>
+      <h3 id="topic-top-papers-heading">Top representative papers</h3>
+      <ol id="topic-top-papers"></ol>
     </div>
   `;
+  rerenderTopPapers();
 
   // longitudinal line: mean across journals + faint per-journal lines (locked y-range)
   {
     const p = buildLongitudinalPlot(t.longitudinal, t.longitudinal_by_journal, clusterColorHex[t.cluster]);
-    Plotly.newPlot("chart-topic-long", p.data, p.layout, plotlyConfig());
+    const plotEl = document.getElementById("chart-topic-long");
+    Plotly.newPlot(plotEl, p.data, p.layout, plotlyConfig());
+    buildCustomLegend(document.getElementById("legend-topic-long"), plotEl, p.data, clusterColorHex[t.cluster]);
   }
 
-  // journal bar
-  Plotly.newPlot("chart-topic-journal", [{
+  // journal bar — clicking a bar filters the top-papers list to that journal
+  const journalChartEl = document.getElementById("chart-topic-journal");
+  Plotly.newPlot(journalChartEl, [{
     x: t.journal_means.map(d => d.journal),
     y: t.journal_means.map(d => d.mean_prop),
     type: "bar",
@@ -564,15 +791,11 @@ function renderTopicDetail(t) {
     hovertemplate: "%{x}: %{y:.2%}<extra></extra>"
   }], plotlyLayout({ yPercent: true }), plotlyConfig());
 
-  // wire paper-link clicks
-  el.querySelectorAll("a[data-paper]").forEach(a => {
-    a.addEventListener("click", e => {
-      e.preventDefault();
-      const id = parseInt(a.dataset.paper);
-      activateTab("papers");
-      // small delay so the tab DOM is visible before highlighting
-      setTimeout(() => selectPaperById(id), 60);
-    });
+  journalChartEl.on("plotly_click", function (ev) {
+    if (!ev || !ev.points || !ev.points[0]) return;
+    const j = ev.points[0].x;
+    topPapersFilter = (topPapersFilter === j) ? null : j;
+    rerenderTopPapers();
   });
 }
 
@@ -606,6 +829,7 @@ function renderClusterDetail(cl) {
       <div class="two-col">
         <div class="chart-box">
           <h3>Year-over-year prevalence</h3>
+          <div id="legend-cluster-long" class="chart-legend"></div>
           <div id="chart-cluster-long" style="height:240px"></div>
         </div>
         <div class="chart-box">
@@ -622,7 +846,9 @@ function renderClusterDetail(cl) {
   `;
   {
     const p = buildLongitudinalPlot(cl.longitudinal, cl.longitudinal_by_journal, clusterColorHex[cl.name]);
-    Plotly.newPlot("chart-cluster-long", p.data, p.layout, plotlyConfig());
+    const plotEl = document.getElementById("chart-cluster-long");
+    Plotly.newPlot(plotEl, p.data, p.layout, plotlyConfig());
+    buildCustomLegend(document.getElementById("legend-cluster-long"), plotEl, p.data, clusterColorHex[cl.name]);
   }
   Plotly.newPlot("chart-cluster-journal", [{
     x: cl.journal_means.map(d => d.journal),
@@ -671,6 +897,7 @@ function renderPapersTable() {
     order: [],                     // no default sort — show the shuffled order
     orderCellsTop: true,           // when users do click a header, sort triggers from the top row
     deferRender: false,
+    autoWidth: false,              // let our CSS govern widths (esp. on mobile)
     dom: "lrtip",                  // hide the global "Search:" box; column filters live in the header
 
     initComplete: function () {
@@ -730,6 +957,11 @@ function selectPaperById(id) {
   }
   renderPaperDetail(paper);
   setHash({ paper: id });
+  // auto-scroll to detail on stacked layouts (tablet/phone). Desktop has the
+  // detail panel sticky on the right, so no scroll is needed.
+  if (window.innerWidth < 1024) {
+    document.getElementById("paper-detail").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function renderPaperDetail(p) {
@@ -819,7 +1051,8 @@ function renderBridgePicker() {
       row.className = "topic-row";
       row.dataset.topic = tno;
       row.innerHTML = `<span>${tno}. ${t.label}</span><span class="prop">${pct(t.prop)}</span>`;
-      row.addEventListener("dblclick", e => { e.stopPropagation(); pickBridgeTopic(tno); });
+      // single-click is reliable on both desktop and touch; dblclick is flaky on mobile
+      row.addEventListener("click", e => { e.stopPropagation(); pickBridgeTopic(tno); });
       body.appendChild(row);
     });
     header.addEventListener("click", () => body.classList.toggle("open"));
@@ -840,6 +1073,11 @@ function pickBridgeTopic(tno) {
   renderBridge();
   if (state.bridgeA && state.bridgeB) {
     setHash({ bridge: `${state.bridgeA}x${state.bridgeB}` });
+    // both topics now filled → scroll the result card into view (mainly helps stacked
+    // layouts; on desktop the right panel is usually already visible and this no-ops)
+    if (window.innerWidth < 1024) {
+      document.getElementById("bridge-detail").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   } else if (state.bridgeA || state.bridgeB) {
     setHash({ bridge: state.bridgeA || state.bridgeB });
   }
@@ -852,9 +1090,9 @@ function clearBridgeSelection() {
   updateBridgeSlots();
   document.getElementById("bridge-detail").innerHTML = `
     <p class="muted">
-      Double-click a topic in the left panel to set <b>Topic A</b>. The right panel will then list its 71 bridge partners,
+      Click a topic in the left panel to set <b>Topic A</b>. The right panel will then list its 71 bridge partners,
       ranked from most overdeveloped to most underdeveloped, color-coded by z-score.<br /><br />
-      Double-click a second topic to set <b>Topic B</b> and zoom in on a single bridge: observed co-exposure, the 95% interval
+      Click a second topic to set <b>Topic B</b> and zoom in on a single bridge: observed co-exposure, the 95% interval
       from 500 simulated worlds, the z-score, and where the pair ranks among all 2,556.
     </p>`;
   setHash({ tab: "bridges" });
@@ -868,9 +1106,9 @@ function updateBridgeSlots() {
   const tA    = state.bridgeA ? state.topicById.get(state.bridgeA) : null;
   const tB    = state.bridgeB ? state.topicById.get(state.bridgeB) : null;
 
-  valA.textContent = tA ? `${tA.topic_no}. ${tA.label}` : "— double-click to set —";
+  valA.textContent = tA ? `${tA.topic_no}. ${tA.label}` : "— click a topic to set —";
   valA.classList.toggle("empty", !tA);
-  valB.textContent = tB ? `${tB.topic_no}. ${tB.label}` : "— double-click to set —";
+  valB.textContent = tB ? `${tB.topic_no}. ${tB.label}` : "— click a topic to set —";
   valB.classList.toggle("empty", !tB);
 
   slotA.classList.toggle("filled", !!tA);
@@ -913,14 +1151,16 @@ function renderBridge() {
   const tierClass = br.tier === "underdeveloped" ? "bridge-tier-under"
                   : br.tier === "overdeveloped"  ? "bridge-tier-over"
                   : "bridge-tier-as";
+  const U = '<span class="bridge-tier-under">underdeveloped</span>';
+  const O = '<span class="bridge-tier-over">overdeveloped</span>';
   const rankSentence = (() => {
     if (br.tier === "underdeveloped") {
-      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most underdeveloped to most overdeveloped.<br />This is the <span class="${tierClass}">${ordinal(br.rank_weak_to_strong)}</span> most underdeveloped pair.`;
+      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most ${U} to most ${O}.<br />This is the <span class="${tierClass}">${ordinal(br.rank_weak_to_strong)}</span> most ${U} pair.`;
     }
     if (br.tier === "overdeveloped") {
-      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most underdeveloped to most overdeveloped.<br />Equivalently, this is the <span class="${tierClass}">${ordinal(br.rank_strong_to_weak)}</span> most overdeveloped pair.`;
+      return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most ${U} to most ${O}.<br />Equivalently, this is the <span class="${tierClass}">${ordinal(br.rank_strong_to_weak)}</span> most ${O} pair.`;
     }
-    return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most underdeveloped to most overdeveloped.<br /><span class="${tierClass}">As expected</span> under the simulated null (|z| &lt; 1.96).`;
+    return `Ranked <b>#${br.rank_weak_to_strong}</b> of ${br.n_total} bridges, from most ${U} to most ${O}.<br /><span class="${tierClass}">As expected</span> under the simulated null (|z| &lt; 1.96).`;
   })();
 
   out.innerHTML = `
@@ -945,7 +1185,41 @@ function renderBridge() {
       <h3>Where the observed value sits relative to the simulated 95% CI</h3>
       <div id="chart-bridge" style="height:120px"></div>
     </div>
+
+    <div class="detail-section top-papers" style="margin-top:22px">
+      <h3>Top 10 papers contributing to this bridge (raw co-exposure θ<sub>A</sub>·θ<sub>B</sub>)</h3>
+      <ol id="bridge-top-papers"></ol>
+    </div>
   `;
+
+  // populate the top-contributing-papers list (lazy-loaded the first time we hit it)
+  const pairKey = `${Math.min(br.topic_a_no, br.topic_b_no)}:${Math.max(br.topic_a_no, br.topic_b_no)}`;
+  const olElInit = document.getElementById("bridge-top-papers");
+  if (olElInit) {
+    olElInit.innerHTML = `<li class="muted" style="list-style:none; margin-left:-22px">Loading top contributors…</li>`;
+  }
+  ensureBridgePapers().then(bp => {
+    const olEl = document.getElementById("bridge-top-papers");
+    if (!olEl) return; // user navigated away during the fetch
+    const topPapers = (bp && bp[pairKey]) || [];
+    olEl.innerHTML = topPapers.map(tp => {
+      const p = state.paperById.get(tp.paper_id);
+      if (!p) return "";
+      const doi = p.url ? ` · <a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : "";
+      return `<li>
+        <a href="#" data-paper="${p.id}">${escape(p.title)}</a>
+        <div class="meta-line">${p.year ?? ""} · ${p.journal ?? ""}${doi} · θ<sub>A</sub>·θ<sub>B</sub> = ${pct(tp.contribution)}</div>
+      </li>`;
+    }).join("");
+    olEl.querySelectorAll("a[data-paper]").forEach(a => {
+      a.addEventListener("click", e => {
+        e.preventDefault();
+        const id = parseInt(a.dataset.paper);
+        activateTab("papers");
+        setTimeout(() => selectPaperById(id), 60);
+      });
+    });
+  });
 
   // tiny strip plot: simulated CI as a thick band, observed as a vertical marker
   const minX = Math.min(br.ci_lo, br.observed) - 0.05 * Math.abs(br.sim_mean);
@@ -1100,7 +1374,7 @@ const JOURNAL_MARKER = {
   JA:    "circle-open",
   JAR:   "triangle-up-open",
   JCIRA: "triangle-down-open",
-  JIAD:  "diamond-open"
+  JIA:  "diamond-open"
 };
 function longitudinalTraces(meanSeries, journalSeries, color) {
   // mean trace — the headline line, drawn last so it sits on top.
@@ -1133,21 +1407,92 @@ function longitudinalTraces(meanSeries, journalSeries, color) {
   });
   return [...perJournal, mean]; // mean drawn last = on top
 }
-// Lock the y-axis range so toggling legend traces does not rescale the plot.
-// Legend lives on the right (vertical) so it never overlaps the chart area.
+// Lock the y-axis range so toggling traces does not rescale the plot.
+// Plotly's own legend is disabled — we render a custom HTML legend above the
+// chart with explicit on/off chips and a master toggle.
 function longitudinalLayout(yMax) {
   const base = plotlyLayout({ yPercent: true });
   return {
     ...base,
-    showlegend: true,
-    legend: {
-      orientation: "v", x: 1.02, y: 0.5, xanchor: "left", yanchor: "middle",
-      font: { size: 10 }, bgcolor: "rgba(0,0,0,0)"
-    },
-    margin: { t: 10, r: 100, b: 36, l: 56 },
+    showlegend: false,
+    margin: { t: 10, r: 12, b: 36, l: 56 },
     yaxis: { ...base.yaxis, autorange: false, range: [0, yMax] }
   };
 }
+// Tiny SVG icon for a single chip (line + marker), matching the trace style.
+function legendMarkerSvg(traceName, color) {
+  const isMean = traceName === "Mean";
+  const stroke = isMean ? color : "#9ca3af";
+  const fill   = isMean ? color : "none";
+  const dash   = isMean ? "" : "3,2";
+  const lineWidth = isMean ? 2 : 1;
+  const shape = {
+    "Mean":  `<circle cx="11" cy="6" r="3" fill="${fill}" stroke="${stroke}" stroke-width="1.5" />`,
+    "IJA":   `<rect   x="8" y="3" width="6" height="6" fill="none" stroke="${stroke}" stroke-width="1.2" />`,
+    "JA":    `<circle cx="11" cy="6" r="3" fill="none" stroke="${stroke}" stroke-width="1.2" />`,
+    "JAR":   `<polygon points="11,2.5 14.5,8.5 7.5,8.5" fill="none" stroke="${stroke}" stroke-width="1.2" />`,
+    "JCIRA": `<polygon points="11,9.5 14.5,3.5 7.5,3.5" fill="none" stroke="${stroke}" stroke-width="1.2" />`,
+    "JIA":   `<polygon points="11,2.5 15,6 11,9.5 7,6" fill="none" stroke="${stroke}" stroke-width="1.2" />`
+  }[traceName] || `<circle cx="11" cy="6" r="3" fill="${fill}" stroke="${stroke}" stroke-width="1.2" />`;
+  return `<svg width="22" height="12">
+    <line x1="0" y1="6" x2="22" y2="6" stroke="${stroke}" stroke-width="${lineWidth}" stroke-dasharray="${dash}" />
+    ${shape}
+  </svg>`;
+}
+
+// Build a custom HTML legend with a master toggle followed by one chip per trace.
+// All buttons share the same chip shape so the row reads as one consistent group.
+function buildCustomLegend(containerEl, plotEl, traces, color) {
+  containerEl.innerHTML = "";
+  const visible = traces.map(() => true); // mirror state in closure
+
+  // master toggle goes first so it doesn't crowd against "Mean" on narrow screens
+  const masterBtn = document.createElement("button");
+  masterBtn.type = "button";
+  masterBtn.className = "preset";
+  masterBtn.textContent = "Hide all";
+  containerEl.appendChild(masterBtn);
+
+  // display order: Mean first (followed by journals in their existing order).
+  // We keep the original index `i` for Plotly.restyle so draw order (mean drawn last)
+  // is preserved while the legend reads [Hide all] [Mean] [IJA] [JA] [JAR] [JCIRA] [JIA].
+  const displayOrder = traces
+    .map((tr, i) => ({ tr, i }))
+    .sort((a, b) => (a.tr.name === "Mean" ? -1 : b.tr.name === "Mean" ? 1 : 0));
+
+  displayOrder.forEach(({ tr, i }) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.innerHTML = `${legendMarkerSvg(tr.name, color)}<span>${tr.name}</span>`;
+    chip.dataset.traceIdx = i;
+    chip.addEventListener("click", () => {
+      visible[i] = !visible[i];
+      chip.classList.toggle("off", !visible[i]);
+      Plotly.restyle(plotEl, { visible: visible[i] ? true : "legendonly" }, [i]);
+      applyMaster();
+    });
+    containerEl.appendChild(chip);
+  });
+
+  function applyMaster() {
+    const anyOn = visible.some(v => v);
+    masterBtn.textContent = anyOn ? "Hide all" : "Show all";
+  }
+
+  masterBtn.addEventListener("click", () => {
+    const anyOn = visible.some(v => v);
+    const next = !anyOn; // if any visible, hide all; else show all
+    for (let i = 0; i < visible.length; i++) {
+      visible[i] = next;
+      const chip = containerEl.querySelector(`.chip[data-trace-idx="${i}"]`);
+      if (chip) chip.classList.toggle("off", !next);
+    }
+    Plotly.restyle(plotEl, { visible: next ? true : "legendonly" }); // applies to all traces
+    applyMaster();
+  });
+}
+
 // Convenience: wrap traces + computed range + layout into one object.
 function buildLongitudinalPlot(meanSeries, journalSeries, color) {
   const data = longitudinalTraces(meanSeries, journalSeries, color);
@@ -1250,8 +1595,6 @@ function ordinal(n) {
   }
   document.getElementById("summary").textContent =
     `${state.meta.n_papers.toLocaleString()} papers · ${state.meta.n_topics} topics · ${state.meta.n_clusters} clusters · ${state.meta.n_bridges.toLocaleString()} bridges · Article Under Review at JA`;
-  document.getElementById("about-numbers").textContent =
-    `${state.meta.n_papers.toLocaleString()} peer-reviewed articles across ${state.meta.journals.length} journals (${state.meta.journals.join(", ")}), ${state.meta.year_min}–${state.meta.year_max}. K = ${state.meta.n_topics} topics; ${state.meta.n_clusters} clusters; ${state.meta.n_bridges.toLocaleString()} bridges; ${state.meta.n_simulations} simulated worlds.`;
   renderTcList();
   renderPapersTable();
   setupBridgeTab();
