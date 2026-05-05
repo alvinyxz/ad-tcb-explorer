@@ -6,6 +6,6 @@
   "n_simulations": 500,
   "year_min": 2014,
   "year_max": 2024,
-  "journals": ["IJA", "JA", "JCIRA", "JIAD", "JAR"],
+  "journals": ["IJA", "JA", "JCIRA", "JIA", "JAR"],
   "generated": "2026-05-04"
 }
