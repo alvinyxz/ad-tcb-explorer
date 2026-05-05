@@ -591,13 +591,20 @@ const state = {
 async function loadAll() {
   // Eager-load everything except bridge_papers.json (the largest file, ~1.1MB raw).
   // We defer bridge_papers.json to the first time the user picks a second topic.
-  const [meta, topics, clusters, papers, topicPapers, topicPapersByJournal, bridges] = await Promise.all([
+  const [
+    meta, topics, clusters, papers,
+    topicPapers, topicPapersByJournal,
+    clusterPapers, clusterPapersByJournal,
+    bridges
+  ] = await Promise.all([
     fetch("data/meta.json").then(r => r.json()),
     fetch("data/topics.json").then(r => r.json()),
     fetch("data/clusters.json").then(r => r.json()),
     fetch("data/papers.json").then(r => r.json()),
     fetch("data/topic_papers.json").then(r => r.json()),
     fetch("data/topic_papers_by_journal.json").then(r => r.json()).catch(() => ({})),
+    fetch("data/cluster_papers.json").then(r => r.json()).catch(() => ({})),
+    fetch("data/cluster_papers_by_journal.json").then(r => r.json()).catch(() => ({})),
     fetch("data/bridges.json").then(r => r.json())
   ]);
   state.meta = meta;
@@ -605,9 +612,11 @@ async function loadAll() {
   state.clusters = clusters;
   state.papers = papers;
   state.topicPapers = topicPapers;
-  state.topicPapersByJournal = topicPapersByJournal; // {topic_no: {journal: [papers]}}
+  state.topicPapersByJournal = topicPapersByJournal;       // {topic_no: {journal: [papers]}}
+  state.clusterPapers = clusterPapers;                     // {cluster_name: [papers]}
+  state.clusterPapersByJournal = clusterPapersByJournal;   // {cluster_name: {journal: [papers]}}
   state.bridges = bridges;
-  state.bridgePapers = null;                         // populated lazily by ensureBridgePapers()
+  state.bridgePapers = null;                               // populated lazily by ensureBridgePapers()
   state.topicById = new Map(topics.map(t => [t.topic_no, t]));
   state.paperById = new Map(papers.map(p => [p.id, p]));
 }
@@ -707,10 +716,12 @@ function renderTopicDetail(t) {
       papers = state.topicPapers[t.topic_no] || [];
     }
     return papers.slice(0, 15).map(p => {
-      const journalChunk = topPapersFilter ? "" : ` · ${p.journal ?? ""}`;
-      const doi = p.url ? ` · <a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : "";
-      return `<li><a href="#" data-paper="${p.paper_id}">${escape(p.title)}</a>
-        <div class="meta-line">${p.year}${journalChunk}${doi} · θ = ${pct(p.prop)}</div></li>`;
+      const meta = state.paperById.get(p.paper_id);
+      if (!meta) return "";
+      const journalChunk = topPapersFilter ? "" : ` · ${meta.journal ?? ""}`;
+      const doi = meta.url ? ` · <a href="${meta.url}" target="_blank" rel="noopener">DOI</a>` : "";
+      return `<li><a href="#" data-paper="${p.paper_id}">${escape(meta.title)}</a>
+        <div class="meta-line">${meta.year ?? ""}${journalChunk}${doi} · θ = ${pct(p.prop)}</div></li>`;
     }).join("");
   }
 
@@ -814,11 +825,52 @@ function renderTopicDetail(t) {
 
 function renderClusterDetail(cl) {
   const el = document.getElementById("tc-detail");
-  const memberLis = cl.topic_nos.map(tno => {
-    const t = state.topicById.get(tno);
-    return `<li><a href="#" data-topic="${tno}">${tno}. ${t.label}</a>
-              <span class="muted">${pct(t.prop)}</span></li>`;
-  }).join("");
+
+  // closure-scoped journal filter for the top-papers list (resets on each cluster switch)
+  let topPapersFilter = null;
+
+  function buildTopPapersHtml() {
+    let papers;
+    if (topPapersFilter && state.clusterPapersByJournal && state.clusterPapersByJournal[cl.name]?.[topPapersFilter]) {
+      papers = state.clusterPapersByJournal[cl.name][topPapersFilter];
+    } else {
+      papers = (state.clusterPapers && state.clusterPapers[cl.name]) || [];
+    }
+    return papers.slice(0, 15).map(p => {
+      const meta = state.paperById.get(p.paper_id);
+      if (!meta) return "";
+      const journalChunk = topPapersFilter ? "" : ` · ${meta.journal ?? ""}`;
+      const doi = meta.url ? ` · <a href="${meta.url}" target="_blank" rel="noopener">DOI</a>` : "";
+      return `<li><a href="#" data-paper="${p.paper_id}">${escape(meta.title)}</a>
+        <div class="meta-line">${meta.year ?? ""}${journalChunk}${doi} · θ = ${pct(p.prop)}</div></li>`;
+    }).join("");
+  }
+
+  function rerenderTopPapers() {
+    const headingEl = document.getElementById("cluster-top-papers-heading");
+    const listEl    = document.getElementById("cluster-top-papers");
+    if (!headingEl || !listEl) return;
+    headingEl.innerHTML = topPapersFilter
+      ? `Top representative papers in <i>${topPapersFilter}</i>
+         <a href="#" id="reset-cluster-top-papers" style="font-weight:400; font-size:11px; margin-left:8px; text-transform:none; letter-spacing:0">show all</a>`
+      : `Top representative papers`;
+    listEl.innerHTML = buildTopPapersHtml();
+    const reset = document.getElementById("reset-cluster-top-papers");
+    if (reset) reset.addEventListener("click", e => {
+      e.preventDefault();
+      topPapersFilter = null;
+      rerenderTopPapers();
+    });
+    listEl.querySelectorAll("a[data-paper]").forEach(a => {
+      a.addEventListener("click", e => {
+        e.preventDefault();
+        const id = parseInt(a.dataset.paper);
+        activateTab("papers");
+        setTimeout(() => selectPaperById(id), 60);
+      });
+    });
+  }
+
   el.innerHTML = `
     <div class="detail-header">
       <span class="kicker">Cluster</span>
@@ -847,23 +899,29 @@ function renderClusterDetail(cl) {
         </div>
         <div class="chart-box">
           <h3>Mean prevalence by journal</h3>
-          <div id="chart-cluster-journal" style="height:240px"></div>
+          <p class="muted" style="font-size:11px; margin: 0 0 6px 0">Click a bar to filter the papers list below.</p>
+          <div id="chart-cluster-journal" style="height:240px; cursor:pointer"></div>
         </div>
       </div>
     </div>
 
     <div class="detail-section top-papers">
-      <h3>Member topics (ranked within cluster)</h3>
-      <ol>${memberLis}</ol>
+      <h3 id="cluster-top-papers-heading">Top representative papers</h3>
+      <ol id="cluster-top-papers"></ol>
     </div>
   `;
+  rerenderTopPapers();
+
   {
     const p = buildLongitudinalPlot(cl.longitudinal, cl.longitudinal_by_journal, clusterColorHex[cl.name]);
     const plotEl = document.getElementById("chart-cluster-long");
     Plotly.newPlot(plotEl, p.data, p.layout, plotlyConfig());
     buildCustomLegend(document.getElementById("legend-cluster-long"), plotEl, p.data, clusterColorHex[cl.name]);
   }
-  Plotly.newPlot("chart-cluster-journal", [{
+
+  // journal bar — clicking a bar filters the top-papers list to that journal
+  const journalChartEl = document.getElementById("chart-cluster-journal");
+  Plotly.newPlot(journalChartEl, [{
     x: cl.journal_means.map(d => d.journal),
     y: cl.journal_means.map(d => d.mean_prop),
     type: "bar",
@@ -871,11 +929,11 @@ function renderClusterDetail(cl) {
     hovertemplate: "%{x}: %{y:.2%}<extra></extra>"
   }], plotlyLayout({ yPercent: true }), plotlyConfig());
 
-  el.querySelectorAll("a[data-topic]").forEach(a => {
-    a.addEventListener("click", e => {
-      e.preventDefault();
-      selectTopic(parseInt(a.dataset.topic));
-    });
+  journalChartEl.on("plotly_click", function (ev) {
+    if (!ev || !ev.points || !ev.points[0]) return;
+    const j = ev.points[0].x;
+    topPapersFilter = (topPapersFilter === j) ? null : j;
+    rerenderTopPapers();
   });
 }
 
