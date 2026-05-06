@@ -34,6 +34,9 @@
                font-size: 14px; line-height: 1.45; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  /* external paper link — the arrow signals external; keep weight/underline modest */
+  a.paper-link { font-weight: 500; }
+  a.paper-link:hover { color: var(--ink); text-decoration: underline; }
   h1, h2, h3, h4 { margin: 0 0 .35em 0; font-weight: 600; line-height: 1.2; }
   h1 { font-size: 18px; }
   h2 { font-size: 15px; }
@@ -719,9 +722,10 @@ function renderTopicDetail(t) {
       const meta = state.paperById.get(p.paper_id);
       if (!meta) return "";
       const journalChunk = topPapersFilter ? "" : ` · ${meta.journal ?? ""}`;
-      const doi = meta.url ? ` · <a href="${meta.url}" target="_blank" rel="noopener">DOI</a>` : "";
+      const link = paperLinkHtml(meta.url);
+      const linkChunk = link ? ` · ${link}` : "";
       return `<li><a href="#" data-paper="${p.paper_id}">${escape(meta.title)}</a>
-        <div class="meta-line">${meta.year ?? ""}${journalChunk}${doi} · θ = ${pct(p.prop)}</div></li>`;
+        <div class="meta-line">${meta.year ?? ""}${journalChunk}${linkChunk} · θ = ${pct(p.prop)}</div></li>`;
     }).join("");
   }
 
@@ -840,9 +844,10 @@ function renderClusterDetail(cl) {
       const meta = state.paperById.get(p.paper_id);
       if (!meta) return "";
       const journalChunk = topPapersFilter ? "" : ` · ${meta.journal ?? ""}`;
-      const doi = meta.url ? ` · <a href="${meta.url}" target="_blank" rel="noopener">DOI</a>` : "";
+      const link = paperLinkHtml(meta.url);
+      const linkChunk = link ? ` · ${link}` : "";
       return `<li><a href="#" data-paper="${p.paper_id}">${escape(meta.title)}</a>
-        <div class="meta-line">${meta.year ?? ""}${journalChunk}${doi} · θ = ${pct(p.prop)}</div></li>`;
+        <div class="meta-line">${meta.year ?? ""}${journalChunk}${linkChunk} · θ = ${pct(p.prop)}</div></li>`;
     }).join("");
   }
 
@@ -1034,7 +1039,7 @@ function selectPaperById(id) {
 
 function renderPaperDetail(p) {
   const el = document.getElementById("paper-detail");
-  const doiLink = p.url ? `<a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : "";
+  const doiLink = paperLinkHtml(p.url);
   const topicsHtml = (p.top_topics || []).map(tt => {
     const t = state.topicById.get(tt.topic_no);
     if (!t) return "";
@@ -1273,10 +1278,11 @@ function renderBridge() {
     olEl.innerHTML = topPapers.map(tp => {
       const p = state.paperById.get(tp.paper_id);
       if (!p) return "";
-      const doi = p.url ? ` · <a href="${p.url}" target="_blank" rel="noopener">DOI</a>` : "";
+      const link = paperLinkHtml(p.url);
+      const linkChunk = link ? ` · ${link}` : "";
       return `<li>
         <a href="#" data-paper="${p.id}">${escape(p.title)}</a>
-        <div class="meta-line">${p.year ?? ""} · ${p.journal ?? ""}${doi} · θ<sub>A</sub>·θ<sub>B</sub> = ${pct(tp.contribution)}</div>
+        <div class="meta-line">${p.year ?? ""} · ${p.journal ?? ""}${linkChunk} · θ<sub>A</sub>·θ<sub>B</sub> = ${pct(tp.contribution)}</div>
       </li>`;
     }).join("");
     olEl.querySelectorAll("a[data-paper]").forEach(a => {
@@ -1434,6 +1440,11 @@ function escape(s) {
 function pct(x) {
   if (x == null || isNaN(x)) return "";
   return (x * 100).toFixed(2) + "%";
+}
+// Link to the publisher's page for a paper. The arrow signals external navigation;
+// the underline makes it read as actionable in muted meta-line text.
+function paperLinkHtml(url) {
+  return url ? `<a href="${url}" target="_blank" rel="noopener" class="paper-link">Link to Paper&nbsp;&#x2197;</a>` : "";
 }
 
 // Build the trace bundle for a longitudinal chart that shows the across-journal
