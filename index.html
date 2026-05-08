@@ -52,6 +52,10 @@
     display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
   }
   header.site .summary { color: var(--muted); font-size: 12px; }
+  header.site .summary a.cite-link {
+    color: var(--muted); text-decoration: underline; text-underline-offset: 2px; font-weight: 600;
+  }
+  header.site .summary a.cite-link:hover { color: var(--ink); }
   nav.tabs {
     display: flex; gap: 0; border-bottom: 1px solid var(--line); padding: 0 22px;
   }
@@ -108,7 +112,7 @@
     margin: 28px 0 10px 0; padding-bottom: 6px;
     border-bottom: 1px solid var(--line);
   }
-  #tab-about p b { color: var(--accent); font-weight: 700; }
+  #tab-about p b { font-weight: 700; }
   #tab-about code {
     background: var(--soft); padding: 1px 6px; border-radius: 3px;
     font-size: 12.5px; color: var(--ink);
@@ -487,12 +491,23 @@
   <!-- ABOUT TAB -->
   <section id="tab-about" class="panel">
     <h2>About this site</h2>
+    <p><b>Author(s). (under review). <i>Title withheld for anonymous review</i>.
+       <i>Journal of Advertising</i>. The full citation will be provided upon acceptance.</b></p>
     <p>This is the public companion site to a manuscript currently under review at the
        <i>Journal of Advertising</i>, which introduces the topic-cluster-bridge (TCB) methodological
-       framework for reviewing a decade of advertising scholarship. If you draw on the paper or this
-       explorer in your own work, please cite: Author(s). (under review).
-       <i>Title withheld for anonymous review</i>. <i>Journal of Advertising</i>. The full citation
-       will be provided upon acceptance.</p>
+       framework for reviewing a decade of advertising scholarship. The full data, code, and intermediate
+       outputs are available in an anonymized OSF repository (link withheld for anonymous review) for
+       readers who want to replicate or extend the analysis.</p>
+    <p><b>When your work draws on anything you find here, please cite us.</b> Concrete examples: claims
+       that a topic or cluster has been understudied (in advertising research as a whole, in recent
+       years, or in particular journals); claims that a topic or cluster has grown rapidly;
+       representative papers identified through the Topics &amp; Clusters tab; papers selected via the
+       Papers tab as exemplars or counterexamples; "missed-opportunity" or "underdeveloped-bridge"
+       arguments built from the Bridges tab; comparisons of journal emphasis (for example, what
+       <i>JCIRA</i> covers more heavily than <i>JAR</i>); descriptive context for a literature review,
+       dissertation proposal, or grant narrative; and applications of the TCB framework itself to a
+       different corpus. Citing us strengthens your argument by letting readers verify your claims, and
+       credits the work behind them.</p>
 
     <h3>What you can do here</h3>
 
@@ -1677,8 +1692,8 @@ function ordinal(n) {
       <pre>${err}</pre></div>`;
     return;
   }
-  document.getElementById("summary").textContent =
-    `${state.meta.n_papers.toLocaleString()} papers · ${state.meta.n_topics} topics · ${state.meta.n_clusters} clusters · ${state.meta.n_bridges.toLocaleString()} bridges · Article Under Review at JA`;
+  document.getElementById("summary").innerHTML =
+    `${state.meta.n_papers.toLocaleString()} papers · ${state.meta.n_topics} topics · ${state.meta.n_clusters} clusters · ${state.meta.n_bridges.toLocaleString()} bridges · <a href="#about" class="cite-link">How To Cite Us</a>`;
   renderTcList();
   renderPapersTable();
   setupBridgeTab();
