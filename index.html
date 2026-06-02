@@ -1490,14 +1490,19 @@ function paperLinkHtml(url) {
 
 // GA4 — send an explicit page_view event whenever the user navigates within the SPA.
 // Enhanced Measurement only catches pushState/popstate, so our hash-based routing
-// would otherwise look like a single visit. page_title is what shows up in GA's
-// "Pages and screens" report; make it human-readable.
+// would otherwise look like a single visit.
+//
+// Important: GA4 strips URL fragments (the # portion) when computing page_path,
+// so /#topic=28 would collapse to / in reports. We rewrite the leading "/#" to "/"
+// before sending so each route shows up as its own distinct path.
 function trackView(path, title) {
   if (typeof gtag !== "function") return;
+  const gaPath = path.startsWith("/#") ? "/" + path.slice(2) : path;
+  const gaLoc  = window.location.origin + window.location.pathname + window.location.search + gaPath;
   gtag("event", "page_view", {
-    page_path: path,
-    page_title: title,
-    page_location: window.location.origin + window.location.pathname + window.location.search + path
+    page_path:     gaPath,
+    page_title:    title,
+    page_location: gaLoc
   });
 }
 
