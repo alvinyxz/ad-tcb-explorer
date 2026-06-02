@@ -665,10 +665,13 @@ function ensureBridgePapers() {
 
 // ---- 2. tab nav ----------------------------------------------------------
 function setupTabs() {
+  const TAB_TITLES = { tc: "Topics & Clusters", papers: "Papers", bridges: "Bridges", about: "About" };
   document.querySelectorAll("nav.tabs button").forEach(btn => {
     btn.addEventListener("click", () => {
-      activateTab(btn.dataset.tab);
-      setHash({ tab: btn.dataset.tab });
+      const tab = btn.dataset.tab;
+      activateTab(tab);
+      setHash({ tab });
+      trackView(`/#${tab}`, `Tab: ${TAB_TITLES[tab] || tab}`);
     });
   });
 }
@@ -717,8 +720,10 @@ function selectTopic(tno) {
   document.querySelectorAll(".topic-row").forEach(r =>
     r.classList.toggle("selected", parseInt(r.dataset.topic) === tno)
   );
-  renderTopicDetail(state.topicById.get(tno));
+  const t = state.topicById.get(tno);
+  renderTopicDetail(t);
   setHash({ topic: tno });
+  trackView(`/#topic=${tno}`, `Topic ${tno}: ${t ? t.label : ""}`);
 }
 
 function selectCluster(name) {
@@ -727,6 +732,7 @@ function selectCluster(name) {
   document.querySelectorAll(".topic-row").forEach(r => r.classList.remove("selected"));
   renderClusterDetail(state.clusters.find(c => c.name === name));
   setHash({ cluster: name });
+  trackView(`/#cluster=${encodeURIComponent(name)}`, `Cluster: ${name}`);
 }
 
 function renderTopicDetail(t) {
@@ -1057,6 +1063,7 @@ function selectPaperById(id) {
   }
   renderPaperDetail(paper);
   setHash({ paper: id });
+  trackView(`/#paper=${id}`, `Paper: ${paper.title || ""}`);
   // auto-scroll to detail on stacked layouts (tablet/phone). Desktop has the
   // detail panel sticky on the right, so no scroll is needed.
   if (window.innerWidth < 1024) {
@@ -1173,13 +1180,20 @@ function pickBridgeTopic(tno) {
   renderBridge();
   if (state.bridgeA && state.bridgeB) {
     setHash({ bridge: `${state.bridgeA}x${state.bridgeB}` });
+    const tA = state.topicById.get(state.bridgeA);
+    const tB = state.topicById.get(state.bridgeB);
+    trackView(`/#bridge=${state.bridgeA}x${state.bridgeB}`,
+              `Bridge: ${tA ? tA.label : state.bridgeA} × ${tB ? tB.label : state.bridgeB}`);
     // both topics now filled → scroll the result card into view (mainly helps stacked
     // layouts; on desktop the right panel is usually already visible and this no-ops)
     if (window.innerWidth < 1024) {
       document.getElementById("bridge-detail").scrollIntoView({ behavior: "smooth", block: "start" });
     }
   } else if (state.bridgeA || state.bridgeB) {
-    setHash({ bridge: state.bridgeA || state.bridgeB });
+    const seed = state.bridgeA || state.bridgeB;
+    setHash({ bridge: seed });
+    const tSeed = state.topicById.get(seed);
+    trackView(`/#bridge=${seed}`, `Bridge partners of: ${tSeed ? tSeed.label : seed}`);
   }
 }
 
@@ -1472,6 +1486,19 @@ function pct(x) {
 // the underline makes it read as actionable in muted meta-line text.
 function paperLinkHtml(url) {
   return url ? `<a href="${url}" target="_blank" rel="noopener" class="paper-link">Link to Paper&nbsp;&#x2197;</a>` : "";
+}
+
+// GA4 — send an explicit page_view event whenever the user navigates within the SPA.
+// Enhanced Measurement only catches pushState/popstate, so our hash-based routing
+// would otherwise look like a single visit. page_title is what shows up in GA's
+// "Pages and screens" report; make it human-readable.
+function trackView(path, title) {
+  if (typeof gtag !== "function") return;
+  gtag("event", "page_view", {
+    page_path: path,
+    page_title: title,
+    page_location: window.location.origin + window.location.pathname + window.location.search + path
+  });
 }
 
 // Build the trace bundle for a longitudinal chart that shows the across-journal
